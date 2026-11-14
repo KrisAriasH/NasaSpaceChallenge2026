@@ -148,6 +148,10 @@ td.num { font-family: var(--mono); }
 .followups, .log, .entries, .notes { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
 .entries { list-style: none; padding: 0; }
 .entries li { border-bottom: 1px solid var(--grid); padding-bottom: 8px; }
+.profile { margin: 0; display: grid; gap: 8px; }
+.profile div { display: grid; grid-template-columns: minmax(130px, .7fr) 1fr; gap: 12px; }
+.profile dt { color: var(--muted); }
+.profile dd { margin: 0; }
 
 .todo { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .todo label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }

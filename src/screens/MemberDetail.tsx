@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { DataCategory, MemberDay } from '../types';
 import { ROLE_LABEL, memberById } from '../data/crew';
 import type { BaselineKey } from '../engine/baseline';
-import { SEX_NOTES, SYSTEM_LABEL } from '../engine/guidance';
+import { SYSTEM_LABEL } from '../engine/guidance';
 import { forecasts } from '../engine/forecast';
 import { ALL_CATEGORIES } from '../engine/privacy';
 import { useStore } from '../store';
@@ -102,16 +102,16 @@ export function MemberDetail({ memberId }: { memberId: string }) {
           <p className="muted small">{band ? 'Shaded band: this person’s normal range, learned in the first 7 days.' : 'No personal baseline for this measure.'}</p>
         </Panel>
 
-        <Panel title="Sex-specific notes">
-          <ul className="notes">
-            {SEX_NOTES[member.sex].map((n) => (
-              <li key={n}>{n}</li>
-            ))}
-          </ul>
-          <p className="muted small">
-            Evidence from NASA/NSBRI working groups (2014). No sex differences were found in behavioral health, bone or immune responses, so
-            those rules are the same for everyone.
-          </p>
+        <Panel title="D. Medical profile">
+          <dl className="profile">
+            <div><dt>Sex</dt><dd>{member.sex}</dd></div>
+            <div><dt>Pre-existing conditions</dt><dd>{member.medicalProfile.conditions}</dd></div>
+            <div><dt>Allergies</dt><dd>{member.medicalProfile.allergies}</dd></div>
+            <div><dt>Medications</dt><dd>{member.medicalProfile.medications}</dd></div>
+            <div><dt>Previous flights</dt><dd>{member.medicalProfile.previousFlights}</dd></div>
+            <div><dt>Mission phase</dt><dd>{member.medicalProfile.missionPhase}</dd></div>
+          </dl>
+          <p className="muted small">Clinical context available to the medical officer alongside current mission data.</p>
         </Panel>
       </div>
 

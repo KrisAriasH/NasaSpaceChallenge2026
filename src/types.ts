@@ -5,11 +5,20 @@ export type Sex = 'female' | 'male';
 /** cmo = Crew Medical Officer; backup = reviews the CMO's own data. */
 export type Role = 'cmo' | 'backup' | 'crew';
 
+export interface MedicalProfile {
+  conditions: string;
+  allergies: string;
+  medications: string;
+  previousFlights: string;
+  missionPhase: string;
+}
+
 export interface CrewMember {
   id: string;
   name: string;
   sex: Sex;
   role: Role;
+  medicalProfile: MedicalProfile;
 }
 
 /** Daily readings from wearables (e.g. a Bio-Monitor-type smart shirt) and a sleep watch. */

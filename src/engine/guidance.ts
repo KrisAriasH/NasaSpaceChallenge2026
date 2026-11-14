@@ -1,4 +1,4 @@
-import type { Sex, SystemKey } from '../types';
+import type { SystemKey } from '../types';
 
 /**
  * Suggested actions per finding. The medical officer assigns one as a follow-up;
@@ -147,16 +147,3 @@ export const SYSTEM_LABEL: Record<SystemKey, string> = {
   environment: 'Radiation & cabin',
 };
 
-/**
- * Sex-specific notes, only where there is evidence (NASA/NSBRI working groups, 2014).
- * No differences were found for behavioral health, bone or immune responses in space.
- */
-export const SEX_NOTES: Record<Sex, string[]> = {
-  female: [
-    'Orthostatic intolerance after return to gravity is more frequent in women, who also lose more plasma volume: plan fluid loading before landing.',
-    'Urinary tract infections are more common in women in space: watch hydration and urinary symptoms.',
-  ],
-  male: [
-    'All clinically significant vision changes (SANS) reported up to 2014 were in men: schedule vision checks; headache with blurred vision needs attention.',
-  ],
-};
