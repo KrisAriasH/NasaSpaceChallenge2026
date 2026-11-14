@@ -12,9 +12,10 @@ import type {
   ReactionResult,
   SharingSettings,
   SystemStatus,
+  UrineTest,
 } from './types';
 import { CREW, MISSION_DAYS, memberById } from './data/crew';
-import { simulateEnvironment, simulateMember } from './data/simulate';
+import { simulateEnvironment, simulateMember, simulateUrineTests } from './data/simulate';
 import { type Baselines, computeBaselines } from './engine/baseline';
 import { DEFAULT_SHARING, canSee, recordAccess } from './engine/privacy';
 import { assessMember } from './engine/rules';
@@ -39,6 +40,7 @@ export type Page =
 interface Persisted {
   checkIns: Record<string, Record<number, CheckIn>>; // memberId -> day -> manual check-in
   reactions: Record<string, Record<number, ReactionResult>>;
+  urineTests: Record<string, UrineTest[]>;
   sharing: Record<string, SharingSettings>;
   followUps: FollowUp[];
   accessLog: AccessLogEntry[];
@@ -51,6 +53,7 @@ const STORAGE_KEY = 'asclepio-v1';
 const INITIAL: Persisted = {
   checkIns: {},
   reactions: {},
+  urineTests: {},
   // Ben already shares his answers with the medical officer; the others don't.
   sharing: Object.fromEntries(
     CREW.map((m) => [m.id, { ...DEFAULT_SHARING, checkInAnswersToCmo: m.id === 'ben' }]),
@@ -83,6 +86,7 @@ interface Store {
   /** History of a member up to the current day, with manual entries applied. */
   history: (memberId: string) => MemberDay[];
   baselines: (memberId: string) => Baselines;
+  urineTests: (memberId: string) => UrineTest[];
   assess: (memberId: string) => SystemStatus[];
   /** Privacy check from the current viewer's point of view. */
   can: (subjectId: string, category: DataCategory) => boolean;
@@ -90,6 +94,7 @@ interface Store {
   data: Persisted;
   saveCheckIn: (memberId: string, c: CheckIn) => void;
   saveReaction: (memberId: string, r: ReactionResult) => void;
+  saveUrineTest: (memberId: string, test: UrineTest) => void;
   setSharing: (memberId: string, s: SharingSettings) => void;
   addFollowUp: (f: Omit<FollowUp, 'id' | 'status' | 'createdDay'>) => void;
   setFollowUpStatus: (id: string, status: FollowUp['status']) => void;
@@ -121,6 +126,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const env = useMemo(() => simulateEnvironment(), []);
   const simulated = useMemo(() => Object.fromEntries(CREW.map((m) => [m.id, simulateMember(m.id)])), []);
+  const simulatedUrine = useMemo(() => Object.fromEntries(CREW.map((m) => [m.id, simulateUrineTests(m.id)])), []);
 
   const store = useMemo<Store>(() => {
     const full = (id: string): MemberDay[] =>
@@ -132,6 +138,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const baselineCache: Record<string, Baselines> = {};
     const baselines = (id: string) => (baselineCache[id] ??= computeBaselines(full(id)));
     const history = (id: string) => full(id).slice(0, day);
+    const urineTests = (id: string) =>
+      [...simulatedUrine[id], ...(data.urineTests?.[id] ?? [])].sort((a, b) => a.day - b.day);
     const viewer = memberById(viewerId);
 
     return {
@@ -152,13 +160,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       env,
       history,
       baselines,
-      assess: (id) => assessMember(id, history(id), baselines(id), env),
+      urineTests,
+      assess: (id) => assessMember(id, history(id), baselines(id), env, urineTests(id)),
       can: (sid, category) => canSee(viewer, memberById(sid), category, data.sharing[sid] ?? DEFAULT_SHARING),
       data,
       saveCheckIn: (id, c) =>
         setData((p) => ({ ...p, checkIns: { ...p.checkIns, [id]: { ...p.checkIns[id], [day]: c } } })),
       saveReaction: (id, r) =>
         setData((p) => ({ ...p, reactions: { ...p.reactions, [id]: { ...p.reactions[id], [day]: r } } })),
+      saveUrineTest: (id, test) =>
+        setData((p) => ({ ...p, urineTests: { ...p.urineTests, [id]: [...(p.urineTests?.[id] ?? []), test] } })),
       setSharing: (id, s) => setData((p) => ({ ...p, sharing: { ...p.sharing, [id]: s } })),
       addFollowUp: (f) =>
         setData((p) => ({
@@ -192,7 +203,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }),
       reset: () => setData(INITIAL),
     };
-  }, [day, viewerId, page, subjectId, data, env, simulated]);
+  }, [day, viewerId, page, subjectId, data, env, simulated, simulatedUrine]);
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }

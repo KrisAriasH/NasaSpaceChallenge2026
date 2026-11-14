@@ -127,6 +127,36 @@ export const GUIDANCE: Record<string, Guidance> = {
     actions: ['Watch for infections and latent virus reactivation symptoms', 'Prioritize sleep and limit close contact'],
     source: 'TODO: consulting physician / NASA immune risk',
   },
+  'urine-uti': {
+    title: 'Possible urinary infection',
+    actions: ['Start the onboard urinary infection protocol with the flight surgeon', 'Increase fluid intake', 'Repeat the test in 48 hours'],
+    source: 'Consulting physician',
+  },
+  'urine-blood': {
+    title: 'Blood detected in urine',
+    actions: ['Repeat the test', 'Report to the flight surgeon today'],
+    source: 'Consulting physician',
+  },
+  'urine-protein': {
+    title: 'Protein detected in urine',
+    actions: ['Repeat the test', 'Report to the flight surgeon'],
+    source: 'Consulting physician',
+  },
+  'urine-dehydration': {
+    title: 'Concentrated urine',
+    actions: ['Increase fluid intake', 'Repeat the test tomorrow'],
+    source: 'Consulting physician',
+  },
+  'urine-ph': {
+    title: 'Urine pH outside range',
+    actions: ['Review diet and fluids', 'Watch for kidney stone symptoms'],
+    source: 'Consulting physician',
+  },
+  'urine-clarity': {
+    title: 'Urine clarity changed',
+    actions: ['Repeat the test', 'Report persistent cloudiness to the flight surgeon'],
+    source: 'Consulting physician',
+  },
   'immune-eos-baso': {
     title: 'Possible allergic reaction',
     actions: ['Ask about new exposures (food, materials, dust)', 'Check skin and breathing symptoms'],

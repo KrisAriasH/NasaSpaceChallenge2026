@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CREW, memberById } from '../data/crew';
-import { simulateEnvironment, simulateMember } from '../data/simulate';
-import type { SystemKey } from '../types';
+import { simulateEnvironment, simulateMember, simulateUrineTests } from '../data/simulate';
+import type { SystemKey, UrineTest } from '../types';
 import { computeBaselines } from './baseline';
 import { GUIDANCE } from './guidance';
 import { DEFAULT_SHARING, canGroundSee, canSee } from './privacy';
@@ -38,6 +38,7 @@ describe('privacy policy', () => {
 
   it('shows the CMO vitals and mental status, but not answers unless shared', () => {
     expect(canSee(ana, chen, 'vitals', DEFAULT_SHARING)).toBe(true);
+    expect(canSee(ana, chen, 'urine', DEFAULT_SHARING)).toBe(true);
     expect(canSee(ana, chen, 'mentalStatus', DEFAULT_SHARING)).toBe(true);
     expect(canSee(ana, chen, 'checkInAnswers', DEFAULT_SHARING)).toBe(false);
     expect(canSee(ana, chen, 'checkInAnswers', { ...DEFAULT_SHARING, checkInAnswersToCmo: true })).toBe(true);
@@ -63,6 +64,7 @@ describe('privacy policy', () => {
   it('keeps mental health data from the ground unless authorized', () => {
     expect(canGroundSee('mentalStatus', DEFAULT_SHARING)).toBe(false);
     expect(canGroundSee('vitals', DEFAULT_SHARING)).toBe(true);
+    expect(canGroundSee('urine', DEFAULT_SHARING)).toBe(true);
   });
 });
 
@@ -195,5 +197,44 @@ describe('demo story', () => {
         }
       }
     }
+    for (const id of ['urine-uti', 'urine-blood', 'urine-protein', 'urine-dehydration', 'urine-ph', 'urine-clarity'])
+      expect(GUIDANCE[id], id).toBeDefined();
+  });
+
+  it('detects Chen urinary infection from the day-16 urine test', () => {
+    const days = simulateMember('chen');
+    const findings = assessMember('chen', days.slice(0, 16), computeBaselines(days), env, simulateUrineTests('chen'))
+      .find((s) => s.system === 'immune')!.findings;
+    expect(findings.map((f) => f.id)).toContain('urine-uti');
+  });
+
+  it('does not apply routine urine tests before they are recent', () => {
+    for (const member of CREW) {
+      const days = simulateMember(member.id);
+      const urineFindings = assessMember(member.id, days.slice(0, 14), computeBaselines(days), env, simulateUrineTests(member.id))
+        .flatMap((s) => s.findings)
+        .filter((f) => f.id.startsWith('urine-'));
+      expect(urineFindings, member.id).toHaveLength(0);
+    }
+  });
+
+  it('detects concentrated urine and high protein', () => {
+    const days = simulateMember('ana');
+    const baselines = computeBaselines(days);
+    const dehydrated: UrineTest = {
+      day: 14,
+      color: 'pale yellow',
+      clarity: 'clear',
+      specificGravity: 1.035,
+      ph: 6,
+      protein: 'negative',
+      nitrites: 'negative',
+    };
+    const dehydratedFindings = assessMember('ana', days.slice(0, 14), baselines, env, [dehydrated]).flatMap((s) => s.findings);
+    expect(dehydratedFindings.map((f) => f.id)).toContain('urine-dehydration');
+
+    const protein: UrineTest = { ...dehydrated, specificGravity: 1.015, protein: '2+' };
+    const proteinFindings = assessMember('ana', days.slice(0, 14), baselines, env, [protein]).find((s) => s.system === 'immune')!.findings;
+    expect(proteinFindings.find((f) => f.id === 'urine-protein')?.severity).toBe('red');
   });
 });

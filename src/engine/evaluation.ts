@@ -1,6 +1,6 @@
 import type { SystemKey } from '../types';
 import { BASELINE_DAYS, CREW, MISSION_DAYS } from '../data/crew';
-import { type ScenarioEvent, scenarioEvents, simulateEnvironment, simulateMember } from '../data/simulate';
+import { type ScenarioEvent, scenarioEvents, simulateEnvironment, simulateMember, simulateUrineTests } from '../data/simulate';
 import { computeBaselines } from './baseline';
 import { SYSTEMS, assessMember } from './rules';
 
@@ -31,14 +31,16 @@ export interface Evaluation {
 export function evaluate(): Evaluation {
   const env = simulateEnvironment();
   const events = scenarioEvents(env);
+  const urineByMember = Object.fromEntries(CREW.map((m) => [m.id, simulateUrineTests(m.id)]));
   // status[memberId][system][day] = alert present?
   const status: Record<string, Record<SystemKey, Record<number, boolean>>> = {};
   for (const m of CREW) {
     const all = simulateMember(m.id);
+    const urine = urineByMember[m.id];
     const b = computeBaselines(all);
     status[m.id] = Object.fromEntries(SYSTEMS.map((s) => [s, {}])) as Record<SystemKey, Record<number, boolean>>;
     for (let day = BASELINE_DAYS + 1; day <= MISSION_DAYS; day++) {
-      for (const s of assessMember(m.id, all.slice(0, day), b, env)) status[m.id][s.system][day] = s.status !== 'green';
+      for (const s of assessMember(m.id, all.slice(0, day), b, env, urine)) status[m.id][s.system][day] = s.status !== 'green';
     }
   }
   const memberFor = (e: ScenarioEvent) => (e.memberId === 'all' ? CREW[0].id : e.memberId);
@@ -73,6 +75,11 @@ export function evaluate(): Evaluation {
       if (s === 'environment' && m.id !== CREW[0].id) continue;
       for (let day = BASELINE_DAYS + 1; day <= MISSION_DAYS; day++) {
         if (covered(m.id, s, day)) continue;
+        // Chen's abnormal urine test remains clinically relevant for seven days.
+        const urineEvent = (s === 'immune' || s === 'blood') && urineByMember[m.id].some(
+          (test) => test.nitrites === 'positive' && day >= test.day && day < test.day + 7,
+        );
+        if (urineEvent) continue;
         healthy++;
         if (status[m.id][s][day]) falseAlarms++;
       }

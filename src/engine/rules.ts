@@ -1,4 +1,4 @@
-import type { Environment, Finding, MemberDay, Status, SystemKey, SystemStatus, Trend } from '../types';
+import type { Environment, Finding, MemberDay, Status, SystemKey, SystemStatus, Trend, UrineTest } from '../types';
 import { PROFILES } from '../data/crew';
 import { type Baselines, recent, valueOf, z } from './baseline';
 
@@ -34,6 +34,10 @@ export const T = {
   bpSysHighTendency: 135,
   bpDiaHigh: 100,
   // Blood pressure thresholds from the consulting physician.
+  urineSgLow: 1.005, // PLACEHOLDER: confirm with consulting physician
+  urineSgHigh: 1.030, // PLACEHOLDER: confirm with consulting physician
+  urinePhLow: 5, // PLACEHOLDER: confirm with consulting physician
+  urinePhHigh: 7.5, // PLACEHOLDER: confirm with consulting physician
   // Blood panel: common adult reference limits, PLACEHOLDERS to confirm with the consulting physician.
   leukocytesHigh: 11, // ×10^9/L
   lymphocytesLow: 1.0, // ×10^9/L
@@ -88,7 +92,7 @@ const sev = (red: boolean): Finding['severity'] => (red ? 'red' : 'yellow');
 export const SYSTEMS: SystemKey[] = ['cardio', 'blood', 'immune', 'bone', 'mental', 'environment'];
 
 /** All findings for one person, using their history up to and including today. */
-export function findingsFor(memberId: string, days: MemberDay[], b: Baselines, env: Environment[]): Finding[] {
+export function findingsFor(memberId: string, days: MemberDay[], b: Baselines, env: Environment[], urine: UrineTest[] = []): Finding[] {
   if (days.length === 0) return [];
   const today = days[days.length - 1];
   const envToday = env[today.day - 1];
@@ -183,6 +187,33 @@ export function findingsFor(memberId: string, days: MemberDay[], b: Baselines, e
     add({ id: 'immune-symptoms', system: 'immune', severity: 'yellow', reveals: 'checkInAnswers',
       message: `Symptoms in the last 3 days: ${symptoms.join(', ')}.` });
 
+  const latestUrine = urine
+    .filter((test) => test.day <= today.day && test.day > today.day - 7)
+    .sort((a, b) => a.day - b.day)
+    .at(-1);
+  if (latestUrine) {
+    const urinaryDiscomfort = days.slice(-3).some((d) => d.checkIn.symptoms.includes('urinary discomfort'));
+    const uti = latestUrine.nitrites === 'positive' || (latestUrine.clarity !== 'clear' && urinaryDiscomfort);
+    if (uti)
+      add({ id: 'urine-uti', system: 'immune', severity: 'red', reveals: 'urine',
+        message: `Urine day ${latestUrine.day}: clarity ${latestUrine.clarity}, nitrites ${latestUrine.nitrites}, pH ${latestUrine.ph.toFixed(1)} (possible urinary infection).` });
+    if (latestUrine.color === 'red/pink' || latestUrine.color === 'brown')
+      add({ id: 'urine-blood', system: 'immune', severity: 'red', reveals: 'urine',
+        message: `Urine day ${latestUrine.day}: color ${latestUrine.color}, suggesting blood in the urine.` });
+    if (latestUrine.protein === '1+' || latestUrine.protein === '2+' || latestUrine.protein === '3+')
+      add({ id: 'urine-protein', system: 'immune', severity: latestUrine.protein === '1+' ? 'yellow' : 'red', reveals: 'urine',
+        message: `Urine day ${latestUrine.day}: protein ${latestUrine.protein}.` });
+    if (latestUrine.specificGravity > T.urineSgHigh || latestUrine.color === 'dark yellow')
+      add({ id: 'urine-dehydration', system: 'blood', severity: 'yellow', reveals: 'urine',
+        message: `Urine day ${latestUrine.day}: specific gravity ${latestUrine.specificGravity.toFixed(3)}, color ${latestUrine.color}.` });
+    if (latestUrine.ph < T.urinePhLow || latestUrine.ph > T.urinePhHigh)
+      add({ id: 'urine-ph', system: 'blood', severity: 'yellow', reveals: 'urine',
+        message: `Urine day ${latestUrine.day}: pH ${latestUrine.ph.toFixed(1)}, outside the expected range.` });
+    if (!uti && latestUrine.clarity !== 'clear')
+      add({ id: 'urine-clarity', system: 'immune', severity: 'yellow', reveals: 'urine',
+        message: `Urine day ${latestUrine.day}: clarity ${latestUrine.clarity}.` });
+  }
+
   // Radiation absorbed by this person (personal dosimeter)
   const profile = PROFILES[memberId];
   const career = profile.priorCareerDoseMSv + days.reduce((sum, d) => sum + d.vitals.personalDoseMSv, 0);
@@ -243,9 +274,9 @@ const worst = (fs: Finding[]): Status =>
 const load = (fs: Finding[]) => fs.reduce((s, f) => s + (f.severity === 'red' ? 2 : 1), 0);
 
 /** Status and 3-day trend per system, plus the break-glass conversation alert. */
-export function assessMember(memberId: string, days: MemberDay[], b: Baselines, env: Environment[]): SystemStatus[] {
-  const now = findingsFor(memberId, days, b, env);
-  const before = days.length > 3 ? findingsFor(memberId, days.slice(0, -3), b, env) : now;
+export function assessMember(memberId: string, days: MemberDay[], b: Baselines, env: Environment[], urine: UrineTest[] = []): SystemStatus[] {
+  const now = findingsFor(memberId, days, b, env, urine);
+  const before = days.length > 3 ? findingsFor(memberId, days.slice(0, -3), b, env, urine) : now;
 
   const result = SYSTEMS.map((system): SystemStatus => {
     const a = now.filter((f) => f.system === system);

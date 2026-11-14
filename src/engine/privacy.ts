@@ -6,7 +6,7 @@ import type { AccessLogEntry, CrewMember, DataCategory, SharingSettings } from '
  *
  * Policy:
  *  - You always see all of your own data.
- *  - The medical officer sees vitals, blood panel, environment, reaction test and the mental health
+ *  - The medical officer sees vitals, blood panel, urine exam, environment, reaction test and the mental health
  *    STATUS (green/yellow/red) of the people they look after.
  *  - Check-in answers (mood, stress, energy, connection, symptoms) only if the owner shares them.
  *  - The private journal is never visible to anyone else.
@@ -41,6 +41,7 @@ export function canSee(
   switch (category) {
     case 'vitals':
     case 'blood':
+    case 'urine':
     case 'reaction':
     case 'mentalStatus':
       return true;
@@ -56,6 +57,7 @@ export function canGroundSee(category: DataCategory, sharing: SharingSettings): 
   switch (category) {
     case 'vitals':
     case 'blood':
+    case 'urine':
     case 'environment':
     case 'reaction':
       return true;
@@ -71,6 +73,7 @@ export function canGroundSee(category: DataCategory, sharing: SharingSettings): 
 export const CATEGORY_LABEL: Record<DataCategory, string> = {
   vitals: 'Vital signs, sleep and exercise',
   blood: 'Blood panel (daily finger-prick)',
+  urine: 'Urine exam',
   environment: 'Habitat environment',
   reaction: 'Reaction test (fatigue)',
   mentalStatus: 'Mental health status (green / yellow / red)',
@@ -81,6 +84,7 @@ export const CATEGORY_LABEL: Record<DataCategory, string> = {
 export const ALL_CATEGORIES: DataCategory[] = [
   'vitals',
   'blood',
+  'urine',
   'environment',
   'reaction',
   'mentalStatus',

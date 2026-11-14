@@ -1,4 +1,4 @@
-import type { CheckIn, Environment, MemberDay } from '../types';
+import type { CheckIn, Environment, MemberDay, UrineTest } from '../types';
 import { CREW, MISSION_DAYS } from './crew';
 
 /**
@@ -87,6 +87,31 @@ export function simulateEnvironment(days = MISSION_DAYS): Environment[] {
       humidity: Math.round(45 + n(4)),
     };
   });
+}
+
+export function simulateUrineTests(memberId: string): UrineTest[] {
+  const routine = (day: number): UrineTest => ({
+    day,
+    color: 'pale yellow',
+    clarity: 'clear',
+    specificGravity: 1.015,
+    ph: 6,
+    protein: 'negative',
+    nitrites: 'negative',
+  });
+  const tests = [routine(1), routine(30)];
+  if (memberId === 'chen') {
+    tests.push({
+      day: 16,
+      color: 'pale yellow',
+      clarity: 'cloudy',
+      specificGravity: 1.022,
+      ph: 7.8,
+      protein: 'trace',
+      nitrites: 'positive',
+    });
+  }
+  return tests.sort((a, b) => a.day - b.day);
 }
 
 export function simulateMember(memberId: string, days = MISSION_DAYS): MemberDay[] {

@@ -52,6 +52,16 @@ export interface BloodPanel {
   cortisol: number;
 }
 
+export interface UrineTest {
+  day: number;
+  color: 'clear' | 'pale yellow' | 'dark yellow' | 'red/pink' | 'brown';
+  clarity: 'clear' | 'cloudy' | 'milky';
+  specificGravity: number; // e.g. 1.020
+  ph: number;
+  protein: 'negative' | 'trace' | '1+' | '2+' | '3+';
+  nitrites: 'negative' | 'positive';
+}
+
 /** 30-second daily self-report. Private by default. */
 export interface CheckIn {
   mood: number; // 1 very low – 5 very good
@@ -124,6 +134,7 @@ export interface AlertState {
 export type DataCategory =
   | 'vitals' // heart, BP, SpO2, skin temp, sleep, exercise
   | 'blood' // daily finger-prick panel
+  | 'urine' // urinalysis
   | 'environment'
   | 'reaction' // PVT result
   | 'mentalStatus' // green / yellow / red + trend only

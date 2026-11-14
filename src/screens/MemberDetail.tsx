@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { DataCategory, MemberDay } from '../types';
+import type { DataCategory, MemberDay, UrineTest } from '../types';
 import { PROFILES, ROLE_LABEL, memberById } from '../data/crew';
 import type { BaselineKey } from '../engine/baseline';
 import { SYSTEM_LABEL } from '../engine/guidance';
@@ -41,12 +41,26 @@ const METRICS: Metric[] = [
   { key: 'connection', label: 'Connection (1–5)', unit: '', category: 'checkInAnswers', get: (d) => d.checkIn.connection },
 ];
 
+type UrineForm = Omit<UrineTest, 'day'>;
+
+const DEFAULT_URINE_FORM: UrineForm = {
+  color: 'pale yellow',
+  clarity: 'clear',
+  specificGravity: 1.015,
+  ph: 6,
+  protein: 'negative',
+  nitrites: 'negative',
+};
+
 export function MemberDetail({ memberId }: { memberId: string }) {
-  const { viewer, can, assess, history, baselines, logAccess, data, day } = useStore();
+  const { viewer, can, assess, history, baselines, logAccess, data, day, urineTests, saveUrineTest } = useStore();
   const member = memberById(memberId);
   const isSelf = viewer.id === memberId;
   const allowed = can(memberId, 'vitals');
   const [metric, setMetric] = useState('restingHR');
+  const [showUrineForm, setShowUrineForm] = useState(false);
+  const [urineForm, setUrineForm] = useState<UrineForm>(DEFAULT_URINE_FORM);
+  const [urineError, setUrineError] = useState('');
 
   // Record that the medical officer opened this person's data (shown to them in "My privacy").
   const visibleCats = ALL_CATEGORIES.filter((c) => c !== 'environment' && can(memberId, c)).join(',');
@@ -71,6 +85,9 @@ export function MemberDetail({ memberId }: { memberId: string }) {
   const followUps = data.followUps.filter((f) => f.memberId === memberId);
   const answersShared = can(memberId, 'checkInAnswers');
   const early = forecasts(days, b);
+  const urineRecords = urineTests(memberId);
+  const latestUrine = urineRecords.filter((test) => test.day <= day).at(-1);
+  const canRecordUrine = can(memberId, 'urine');
   const profile = PROFILES[memberId];
   const careerDose = profile.priorCareerDoseMSv + days.reduce((sum, d) => sum + d.vitals.personalDoseMSv, 0);
   const careerShare = careerDose / T.careerLimit;
@@ -178,6 +195,77 @@ export function MemberDetail({ memberId }: { memberId: string }) {
             <li>Blood panel by finger-prick: daily (iron, leukocytes, lymphocytes, eosinophils, basophils, vitamin D, cortisol).</li>
             <li>Urine and stool exam: monthly. Next on mission day {nextMonthlyLab === day ? `${day} (today)` : nextMonthlyLab}.</li>
           </ul>
+          {latestUrine ? (
+            <div className="table-wrap">
+              <table className="urine-table">
+                <caption>Latest urine test · day {latestUrine.day}</caption>
+                <thead>
+                  <tr><th>Parameter</th><th>Value</th><th>Normal range</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Color</td><td>{latestUrine.color}</td><td>Pale yellow</td></tr>
+                  <tr><td>Clarity</td><td>{latestUrine.clarity}</td><td>Clear</td></tr>
+                  <tr><td>Specific gravity</td><td>{latestUrine.specificGravity.toFixed(3)}</td><td>1.005–1.030</td></tr>
+                  <tr><td>pH</td><td>{latestUrine.ph.toFixed(1)}</td><td>5.0–7.5</td></tr>
+                  <tr><td>Protein</td><td>{latestUrine.protein}</td><td>Negative</td></tr>
+                  <tr><td>Nitrites</td><td>{latestUrine.nitrites}</td><td>Negative</td></tr>
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="muted small">No urine test recorded yet.</p>
+          )}
+          {canRecordUrine && (
+            <>
+              <button type="button" className="btn-ghost" onClick={() => { setShowUrineForm((shown) => !shown); setUrineError(''); }}>
+                {showUrineForm ? 'Cancel' : 'Record urine test'}
+              </button>
+              {showUrineForm && (
+                <form
+                  className="urine-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (!Number.isFinite(urineForm.specificGravity) || !Number.isFinite(urineForm.ph)) {
+                      setUrineError('Specific gravity and pH must be valid numbers.');
+                      return;
+                    }
+                    saveUrineTest(memberId, { ...urineForm, day });
+                    setShowUrineForm(false);
+                    setUrineError('');
+                  }}
+                >
+                  <label>Color
+                    <select value={urineForm.color} onChange={(event) => setUrineForm({ ...urineForm, color: event.target.value as UrineForm['color'] })}>
+                      <option>clear</option><option>pale yellow</option><option>dark yellow</option><option>red/pink</option><option>brown</option>
+                    </select>
+                  </label>
+                  <label>Clarity
+                    <select value={urineForm.clarity} onChange={(event) => setUrineForm({ ...urineForm, clarity: event.target.value as UrineForm['clarity'] })}>
+                      <option>clear</option><option>cloudy</option><option>milky</option>
+                    </select>
+                  </label>
+                  <label>Specific gravity
+                    <input type="number" step="0.001" value={urineForm.specificGravity} onChange={(event) => setUrineForm({ ...urineForm, specificGravity: Number(event.target.value) })} />
+                  </label>
+                  <label>pH
+                    <input type="number" step="0.1" value={urineForm.ph} onChange={(event) => setUrineForm({ ...urineForm, ph: Number(event.target.value) })} />
+                  </label>
+                  <label>Protein
+                    <select value={urineForm.protein} onChange={(event) => setUrineForm({ ...urineForm, protein: event.target.value as UrineForm['protein'] })}>
+                      <option>negative</option><option>trace</option><option>1+</option><option>2+</option><option>3+</option>
+                    </select>
+                  </label>
+                  <label>Nitrites
+                    <select value={urineForm.nitrites} onChange={(event) => setUrineForm({ ...urineForm, nitrites: event.target.value as UrineForm['nitrites'] })}>
+                      <option>negative</option><option>positive</option>
+                    </select>
+                  </label>
+                  <button type="submit" className="btn">Save urine test</button>
+                  {urineError && <p className="error">{urineError}</p>}
+                </form>
+              )}
+            </>
+          )}
           <p className="muted small">Panel and schedule defined with the team’s consulting physician.</p>
         </Panel>
       </div>
