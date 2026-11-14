@@ -6,7 +6,7 @@ contar bien la historia. No agreguen funciones grandes antes de cerrar esto.
 
 ## Arranque (todos, 15 min)
 
-1. Subir esta carpeta al repo: `git remote add origin https://github.com/KrisAriasH/NasaSpaceChallenge2026.git` y `git push -u origin main`
+1.  `git push -u origin main`
 2. Cada uno: clonar, `npm install`, `npm run dev`.
 3. Desplegar en Vercel o Netlify (build `npm run build`, carpeta `dist`) y poner la URL en el README.
 4. Correr `npm test` antes de cada push. Las pruebas de privacidad no deben romperse.
