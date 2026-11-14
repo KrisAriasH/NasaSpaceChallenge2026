@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { CREW, MISSION_DAYS, BASELINE_DAYS, ROLE_LABEL } from '../data/crew';
+import { isEnvironmentId } from '../data/environments';
 import { type Page, useStore } from '../store';
 
 interface NavItem {
@@ -9,7 +10,7 @@ interface NavItem {
 }
 
 export function Layout({ children }: { children: ReactNode }) {
-  const { viewer, setViewer, page, go, day, setDay, subjectId } = useStore();
+  const { viewer, setViewer, page, go, day, setDay, subjectId, environment, environmentId, setEnvironment } = useStore();
 
   const medical: NavItem[] =
     viewer.role === 'cmo'
@@ -64,6 +65,25 @@ export function Layout({ children }: { children: ReactNode }) {
             ))}
           </select>
         </label>
+
+        <div className="mission-environment">
+          <span className="side-label">Mission environment</span>
+          <select
+            id="mission-environment"
+            value={environmentId}
+            onChange={(e) => {
+              if (isEnvironmentId(e.target.value)) setEnvironment(e.target.value);
+            }}
+          >
+            <option value="leo">Low Earth orbit station</option>
+            <option value="transit">Deep-space transit</option>
+            <option value="moon">Lunar surface base</option>
+            <option value="mars">Mars surface base</option>
+          </select>
+          <span className="side-note">
+            {environment.gravityG} g · {environment.radiationBackgroundMSvPerDay} mSv/day · {environment.oneWayDelay} delay
+          </span>
+        </div>
 
         <nav aria-label="Main">
           {medical.length > 0 && (

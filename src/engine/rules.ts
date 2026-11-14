@@ -1,5 +1,6 @@
 import type { Environment, Finding, MemberDay, Status, SystemKey, SystemStatus, Trend, UrineTest } from '../types';
 import { PROFILES } from '../data/crew';
+import { ENVIRONMENTS, type EnvironmentId } from '../data/environments';
 import { type Baselines, recent, valueOf, z } from './baseline';
 
 /**
@@ -22,7 +23,7 @@ export const T = {
   connectionLow: 2.5,
   mentalRedSignals: 3, // this many mental signals at once -> red
   conversationDays: 3, // red this many days in a row -> suggest a private conversation
-  radiationBackground: 1.8, // mSv/day, Curiosity RAD cruise average
+  radiationBackground: 1.8, // mSv/day, transit default; selected environment overrides this
   radiationYellow: 5, // PLACEHOLDER trigger for a possible solar particle event
   radiationRed: 10, // PLACEHOLDER
   careerLimit: 600, // mSv, NASA-STD-3001
@@ -92,10 +93,18 @@ const sev = (red: boolean): Finding['severity'] => (red ? 'red' : 'yellow');
 export const SYSTEMS: SystemKey[] = ['cardio', 'blood', 'immune', 'bone', 'mental', 'environment'];
 
 /** All findings for one person, using their history up to and including today. */
-export function findingsFor(memberId: string, days: MemberDay[], b: Baselines, env: Environment[], urine: UrineTest[] = []): Finding[] {
+export function findingsFor(
+  memberId: string,
+  days: MemberDay[],
+  b: Baselines,
+  env: Environment[],
+  urine: UrineTest[] = [],
+  environmentId: EnvironmentId = 'transit',
+): Finding[] {
   if (days.length === 0) return [];
   const today = days[days.length - 1];
   const envToday = env[today.day - 1];
+  const radiationBackground = ENVIRONMENTS[environmentId].radiationBackgroundMSvPerDay;
   const out: Finding[] = [];
   const add = (f: Omit<Finding, 'memberId'>) => out.push({ ...f, memberId });
 
@@ -186,6 +195,9 @@ export function findingsFor(memberId: string, days: MemberDay[], b: Baselines, e
   if (symptoms.length > 0)
     add({ id: 'immune-symptoms', system: 'immune', severity: 'yellow', reveals: 'checkInAnswers',
       message: `Symptoms in the last 3 days: ${symptoms.join(', ')}.` });
+  if (ENVIRONMENTS[environmentId].dust && symptoms.some((s) => s === 'cough' || s === 'eye irritation'))
+    add({ id: 'env-dust', system: 'environment', severity: 'yellow', reveals: 'checkInAnswers',
+      message: 'Dust-related cough or eye irritation reported in the last 3 days.' });
 
   const latestUrine = urine
     .filter((test) => test.day <= today.day && test.day > today.day - 7)
@@ -261,7 +273,7 @@ export function findingsFor(memberId: string, days: MemberDay[], b: Baselines, e
   if (envToday.radiationMSv >= T.radiationYellow)
     add({ id: 'env-radiation', system: 'environment', severity: sev(envToday.radiationMSv >= T.radiationRed),
       urgent: envToday.radiationMSv >= T.radiationRed, reveals: 'environment',
-      message: `Radiation ${f1(envToday.radiationMSv)} mSv today, ${f0(envToday.radiationMSv / T.radiationBackground)}× the usual dose. Possible solar particle event.` });
+      message: `Radiation ${f1(envToday.radiationMSv)} mSv today, ${f0(envToday.radiationMSv / radiationBackground)}× the usual dose. Possible solar particle event.` });
   if (envToday.co2 > T.co2Yellow)
     add({ id: 'env-co2', system: 'environment', severity: sev(envToday.co2 > T.co2Red), reveals: 'environment',
       message: `Cabin CO2 ${f1(envToday.co2)} mmHg, above the ${f1(T.co2Yellow)} mmHg limit.` });
@@ -274,9 +286,16 @@ const worst = (fs: Finding[]): Status =>
 const load = (fs: Finding[]) => fs.reduce((s, f) => s + (f.severity === 'red' ? 2 : 1), 0);
 
 /** Status and 3-day trend per system, plus the break-glass conversation alert. */
-export function assessMember(memberId: string, days: MemberDay[], b: Baselines, env: Environment[], urine: UrineTest[] = []): SystemStatus[] {
-  const now = findingsFor(memberId, days, b, env, urine);
-  const before = days.length > 3 ? findingsFor(memberId, days.slice(0, -3), b, env, urine) : now;
+export function assessMember(
+  memberId: string,
+  days: MemberDay[],
+  b: Baselines,
+  env: Environment[],
+  urine: UrineTest[] = [],
+  environmentId: EnvironmentId = 'transit',
+): SystemStatus[] {
+  const now = findingsFor(memberId, days, b, env, urine, environmentId);
+  const before = days.length > 3 ? findingsFor(memberId, days.slice(0, -3), b, env, urine, environmentId) : now;
 
   const result = SYSTEMS.map((system): SystemStatus => {
     const a = now.filter((f) => f.system === system);

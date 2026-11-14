@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useState } from 'react';
 import type { Finding } from '../types';
-import { GUIDANCE, RULESET_VERSION, RULE_REVIEW, SYSTEM_LABEL } from '../engine/guidance';
+import { communicationNote, GUIDANCE, RULESET_VERSION, RULE_REVIEW, SYSTEM_LABEL } from '../engine/guidance';
 import { memberById } from '../data/crew';
 import { useStore } from '../store';
 import { Private } from './ui';
@@ -98,7 +98,7 @@ function PrivateSlot(_: { id: string }) {
 
 /** One readable finding, with a way to assign a follow-up. */
 export function FindingCard({ finding, showName }: { finding: Finding; showName?: boolean }) {
-  const { can, addFollowUp, data, go, isAcknowledged, acknowledge, unacknowledge, viewer } = useStore();
+  const { can, addFollowUp, data, go, isAcknowledged, acknowledge, unacknowledge, viewer, environmentId } = useStore();
   const acked = isAcknowledged(finding);
   const canAck = viewer.id !== finding.memberId && !finding.urgent;
   const visible = can(finding.memberId, finding.reveals);
@@ -135,6 +135,7 @@ export function FindingCard({ finding, showName }: { finding: Finding; showName?
           <h3>{g.title}</h3>
           <p className="muted">{finding.message}</p>
           {finding.note && <p className="context-note">{finding.note}</p>}
+          {communicationNote(environmentId, finding) && <p className="context-note">{communicationNote(environmentId, finding)}</p>}
           <div className="assign">
             <label className="sr-only" htmlFor={`act-${finding.memberId}-${finding.id}`}>
               Suggested action
