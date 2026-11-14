@@ -5,20 +5,11 @@ export type Sex = 'female' | 'male';
 /** cmo = Crew Medical Officer; backup = reviews the CMO's own data. */
 export type Role = 'cmo' | 'backup' | 'crew';
 
-export interface MedicalProfile {
-  conditions: string;
-  allergies: string;
-  medications: string;
-  previousFlights: string;
-  missionPhase: string;
-}
-
 export interface CrewMember {
   id: string;
   name: string;
   sex: Sex;
   role: Role;
-  medicalProfile: MedicalProfile;
 }
 
 /** Daily readings from wearables (e.g. a Bio-Monitor-type smart shirt) and a sleep watch. */
@@ -30,6 +21,19 @@ export interface Vitals {
   skinTemp: number; // °C
   sleepHours: number;
   exerciseMin: number;
+  personalDoseMSv: number; // radiation absorbed that day, from the personal dosimeter
+}
+
+/** Fictional medical profile, visible to the person and their medical officer. */
+export interface MedicalProfile {
+  age: number;
+  bloodType: string;
+  allergies: string[];
+  conditions: string[];
+  medications: string[];
+  previousFlights: number;
+  priorCareerDoseMSv: number; // radiation from earlier missions
+  returnDay: number; // mission day of the planned return to Earth
 }
 
 /**
@@ -92,6 +96,8 @@ export interface Finding {
   urgent?: boolean;
   /** Early warning from a combined rule, before any single measure reaches its alert level. */
   predictive?: boolean;
+  /** Optional context shown with the finding when supported by the data. */
+  note?: string;
 }
 
 export interface SystemStatus {

@@ -58,10 +58,33 @@ describe('privacy policy', () => {
 });
 
 describe('demo story', () => {
-  it('is all green for everyone on day 14', () => {
+  it('is all green on day 14, except Diego’s career radiation dose after the solar event', () => {
     for (const m of CREW) {
-      for (const s of Object.values(statusOn(m.id, 14))) expect(s.status, `${m.id} ${s.system}`).toBe('green');
+      for (const s of Object.values(statusOn(m.id, 14))) {
+        if (m.id === 'diego' && s.system === 'environment') {
+          expect(s.findings.map((f) => f.id)).toEqual(['rad-career']);
+        } else {
+          expect(s.status, `${m.id} ${s.system}`).toBe('green');
+        }
+      }
     }
+  });
+
+  it('records a higher personal dose for Diego, who reached the shelter late', () => {
+    const dose = (id: string) => simulateMember(id)[11].vitals.personalDoseMSv;
+    expect(dose('diego')).toBeGreaterThan(2 * dose('ana'));
+    expect(statusOn('diego', 11).environment.status).toBe('green');
+  });
+
+  it('reports symptoms without adding sex-specific context', () => {
+    const chen = statusOn('chen', 16).immune.findings.find((f) => f.id === 'immune-symptoms')!;
+    expect(chen.message).toMatch(/urinary discomfort/);
+    expect(chen.note).toBeUndefined();
+    const diego = statusOn('diego', 27).immune.findings.find((f) => f.id === 'immune-symptoms')!;
+    expect(diego.message).toMatch(/blurred vision/);
+    expect(diego.note).toBeUndefined();
+    const ben = statusOn('ben', 25).immune.findings.find((f) => f.id === 'immune-symptoms')!;
+    expect(ben.note).toBeUndefined();
   });
 
   it('tells everyone to shelter on the solar particle event day', () => {

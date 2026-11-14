@@ -18,6 +18,10 @@ import { CREW, MISSION_DAYS } from './crew';
  *  - Ana: leukocytes up and lymphocytes down around her fever.
  *  - Diego: vitamin D drifts down (bone risk) and iron falls slowly.
  *  - Chen: morning cortisol rises with stress.
+ *  Radiation: each person's dosimeter reads the habitat dose times a factor; during the solar
+ *  event Diego reached the shelter late, so he absorbed more. His career total passes 50% of the limit.
+ *  Symptoms for the contextual notes: Chen urinary discomfort days 15-16; Diego headache with
+ *  blurred vision days 26-28.
  *  Healthy ranges are common adult reference ranges, rounded. VERIFY with the consulting physician.
  */
 
@@ -61,6 +65,9 @@ export function scenarioEvents(env = simulateEnvironment()): ScenarioEvent[] {
     { memberId: 'diego', system: 'blood', start: 9, label: 'Diego: vitamin D and iron falling' },
     { memberId: 'diego', system: 'bone', start: 17, label: 'Diego: exercise skipped' },
     { memberId: 'diego', system: 'cardio', start: 23, label: 'Diego: heart rate rising' },
+    { memberId: 'diego', system: 'environment', start: 12, label: 'Diego: career radiation dose above 50% of the limit' },
+    { memberId: 'chen', system: 'immune', start: 15, end: 18, label: 'Chen: urinary discomfort reported' },
+    { memberId: 'diego', system: 'immune', start: 26, label: 'Diego: headache with blurred vision' },
   ];
 }
 
@@ -88,6 +95,7 @@ export function simulateMember(memberId: string, days = MISSION_DAYS): MemberDay
   const n = (a: number) => (rand() - 0.5) * 2 * a;
   const female = CREW[index].sex === 'female';
   const env = simulateEnvironment(days);
+  const doseRand = rng(500 + index * 13); // separate stream so adding the dosimeter leaves other data unchanged
 
   return Array.from({ length: days }, (_, i) => {
     const day = i + 1;
@@ -149,6 +157,13 @@ export function simulateMember(memberId: string, days = MISSION_DAYS): MemberDay
       }
     }
     if (env[i].co2 > 3.2 && (memberId === 'ben' || memberId === 'chen')) symptoms.push('headache');
+    if (memberId === 'chen' && (day === 15 || day === 16)) symptoms.push('urinary discomfort');
+    if (memberId === 'diego' && day >= 26 && day <= 28) symptoms.push('headache', 'blurred vision');
+
+    // Personal dosimeter: habitat dose x where the person spent the day. Shelter cuts the solar event dose.
+    const SHELTER: Record<string, number> = { ana: 0.4, ben: 0.35, chen: 0.4, diego: 0.85 };
+    const factor = day === 12 || day === 13 ? SHELTER[memberId] : 1 + (doseRand() - 0.5) * 0.1;
+    const personalDoseMSv = Math.round(env[i].radiationMSv * factor * 100) / 100;
 
     const checkIn: CheckIn = {
       mood: scale(mood),
@@ -168,6 +183,7 @@ export function simulateMember(memberId: string, days = MISSION_DAYS): MemberDay
         skinTemp: r1(skinTemp),
         sleepHours: r1(clamp(sleepHours, 3, 10)),
         exerciseMin: Math.round(clamp(exerciseMin, 0, 180)),
+        personalDoseMSv,
       },
       blood: {
         leukocytes: r1(leukocytes),

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { DataCategory, MemberDay } from '../types';
-import { ROLE_LABEL, memberById } from '../data/crew';
+import { PROFILES, ROLE_LABEL, memberById } from '../data/crew';
 import type { BaselineKey } from '../engine/baseline';
 import { SYSTEM_LABEL } from '../engine/guidance';
 import { forecasts } from '../engine/forecast';
+import { T, radiationFollowUp } from '../engine/rules';
 import { ALL_CATEGORIES } from '../engine/privacy';
 import { useStore } from '../store';
 import { FindingList } from '../components/FindingCard';
@@ -24,6 +25,7 @@ const METRICS: Metric[] = [
   { key: 'systolicBP', label: 'Systolic blood pressure', unit: 'mmHg', category: 'vitals', get: (d) => d.vitals.systolicBP, baseline: 'systolicBP' },
   { key: 'skinTemp', label: 'Skin temperature', unit: '°C', category: 'vitals', get: (d) => d.vitals.skinTemp, baseline: 'skinTemp' },
   { key: 'sleepHours', label: 'Sleep', unit: 'h', category: 'vitals', get: (d) => d.vitals.sleepHours, baseline: 'sleepHours' },
+  { key: 'personalDose', label: 'Personal radiation dose', unit: 'mSv', category: 'vitals', get: (d) => d.vitals.personalDoseMSv },
   { key: 'exerciseMin', label: 'Exercise', unit: 'min', category: 'vitals', get: (d) => d.vitals.exerciseMin },
   { key: 'leukocytes', label: 'Leukocytes', unit: '×10⁹/L', category: 'blood', get: (d) => d.blood.leukocytes, baseline: 'leukocytes' },
   { key: 'lymphocytes', label: 'Lymphocytes', unit: '×10⁹/L', category: 'blood', get: (d) => d.blood.lymphocytes, baseline: 'lymphocytes' },
@@ -68,6 +70,13 @@ export function MemberDetail({ memberId }: { memberId: string }) {
   const followUps = data.followUps.filter((f) => f.memberId === memberId);
   const answersShared = can(memberId, 'checkInAnswers');
   const early = forecasts(days, b);
+  const profile = PROFILES[memberId];
+  const careerDose = profile.priorCareerDoseMSv + days.reduce((sum, d) => sum + d.vitals.personalDoseMSv, 0);
+  const careerShare = careerDose / T.careerLimit;
+  const followUp = radiationFollowUp(days);
+  const lymNow = days.at(-1)!.blood.lymphocytes;
+  const lymLow = lymNow < b.lymphocytes.mean - 2 * b.lymphocytes.sd;
+  const daysToReturn = profile.returnDay - day;
   const nextMonthlyLab = Math.ceil(day / 30) * 30; // urine and stool exam every 30 days
 
   return (
@@ -102,16 +111,47 @@ export function MemberDetail({ memberId }: { memberId: string }) {
           <p className="muted small">{band ? 'Shaded band: this person’s normal range, learned in the first 7 days.' : 'No personal baseline for this measure.'}</p>
         </Panel>
 
-        <Panel title="D. Medical profile">
+        <Panel title="Medical profile">
           <dl className="profile">
-            <div><dt>Sex</dt><dd>{member.sex}</dd></div>
-            <div><dt>Pre-existing conditions</dt><dd>{member.medicalProfile.conditions}</dd></div>
-            <div><dt>Allergies</dt><dd>{member.medicalProfile.allergies}</dd></div>
-            <div><dt>Medications</dt><dd>{member.medicalProfile.medications}</dd></div>
-            <div><dt>Previous flights</dt><dd>{member.medicalProfile.previousFlights}</dd></div>
-            <div><dt>Mission phase</dt><dd>{member.medicalProfile.missionPhase}</dd></div>
+            <dt>Age · sex</dt>
+            <dd>{profile.age} · {member.sex}</dd>
+            <dt>Blood type</dt>
+            <dd>{profile.bloodType}</dd>
+            <dt>Allergies</dt>
+            <dd>{profile.allergies.length ? profile.allergies.join(', ') : 'None known'}</dd>
+            <dt>Conditions</dt>
+            <dd>{profile.conditions.length ? profile.conditions.join(', ') : 'None'}</dd>
+            <dt>Medications</dt>
+            <dd>{profile.medications.join(', ') || 'None'}</dd>
+            <dt>Previous flights</dt>
+            <dd>{profile.previousFlights}</dd>
+            <dt>Return to Earth</dt>
+            <dd>Day {profile.returnDay}{daysToReturn >= 0 ? ` (in ${daysToReturn} days)` : ''}</dd>
           </dl>
-          <p className="muted small">Clinical context available to the medical officer alongside current mission data.</p>
+
+          <div className="profile-block">
+            <span className="label">Radiation absorbed (personal dosimeter)</span>
+            <span className="value-line">
+              {careerDose.toFixed(0)} <small>of {T.careerLimit} mSv career limit</small>
+            </span>
+            <div className="meter">
+              <span style={{ width: `${Math.min(100, careerShare * 100)}%` }} className={careerShare >= T.careerRed ? 'crit' : careerShare >= T.careerYellow ? 'warn' : ''} />
+            </div>
+            <span className="muted small">
+              {profile.priorCareerDoseMSv} mSv from earlier missions + {(careerDose - profile.priorCareerDoseMSv).toFixed(1)} mSv this mission
+            </span>
+          </div>
+
+          {followUp && (
+            <div className={`profile-block followup${lymLow ? ' warn' : ''}`}>
+              <span className="label">Radiation blood follow-up until day {followUp.until}</span>
+              <span>
+                {followUp.dose.toFixed(1)} mSv absorbed on day {followUp.day}. Lymphocytes today {lymNow.toFixed(2)} ×10⁹/L:{' '}
+                <strong>{lymLow ? 'below normal' : 'within normal range'}</strong>.
+              </span>
+            </div>
+          )}
+
         </Panel>
       </div>
 

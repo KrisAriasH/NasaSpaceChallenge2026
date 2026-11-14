@@ -51,6 +51,11 @@ Rule-based and explainable, following the SATS approach (no machine learning as 
 5. **Critical rules** (urgent): solar particle event, very low SpO2, fever with shortness of breath. Never hidden.
 6. **Mental health status**: count of signals; red 3 days in a row → private conversation suggested.
 7. **Forecast**: 7-day linear trend per measure, warns when it will leave the normal range.
+8. **Radiation absorbed by each person** (personal dosimeter): career total (earlier missions + this one) against the
+   600 mSv limit; after a day above 5 mSv, a 7-day follow-up watches lymphocytes and leukocytes, which are
+   sensitive to radiation. At the doses in this demo no drop is expected, so the follow-up shows "within normal range".
+9. **Sex-specific context** appears inside an alert only when the reported symptoms make it relevant
+   (e.g. urinary discomfort in a woman, headache with blurred vision in a man), plus landing preparation for women.
 
 Levels: no signal (not the same as healthy), observation, alert, urgent. The CMO can acknowledge an
 alert; it stays quiet unless it gets worse. Each alert shows the rule that fired, the data behind it,

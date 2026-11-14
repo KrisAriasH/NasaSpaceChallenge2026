@@ -122,6 +122,16 @@ export const GUIDANCE: Record<string, Guidance> = {
     actions: ['Ask about new exposures (food, materials, dust)', 'Check skin and breathing symptoms'],
     source: 'TODO: consulting physician',
   },
+  'rad-career': {
+    title: 'Career radiation dose rising',
+    actions: ['Prioritize shielded areas for this person’s work and sleep', 'Plan shelter first for this person in the next solar event', 'Report to the ground radiation team'],
+    source: 'NASA OCHMO Radiation Protection technical brief (600 mSv career limit)',
+  },
+  'rad-blood': {
+    title: 'Blood cells low after a radiation dose',
+    actions: ['Repeat the blood panel tomorrow', 'Check for infections and unusual fatigue', 'Report the dose and blood values to the flight surgeon'],
+    source: 'TODO: consulting physician (lymphocyte depletion as a radiation biomarker)',
+  },
   'env-radiation': {
     title: 'Radiation spike: take shelter',
     actions: ['Move the crew to the storm shelter', 'Stay until dose returns to background', 'Log time outside the shelter'],

@@ -1,4 +1,5 @@
 import type { Environment, Finding, MemberDay, Status, SystemKey, SystemStatus, Trend } from '../types';
+import { PROFILES } from '../data/crew';
 import { type Baselines, recent, valueOf, z } from './baseline';
 
 /**
@@ -36,6 +37,10 @@ export const T = {
   vitaminDLow: 30, // ng/mL (insufficient)
   vitaminDRed: 20, // ng/mL (deficient)
   spo2Urgent: 92, // %, PLACEHOLDER critical rule
+  careerYellow: 0.5, // share of the 600 mSv career limit, PLACEHOLDER
+  careerRed: 0.8,
+  radFollowUpDose: 5, // mSv in one day starts a 7-day blood follow-up, PLACEHOLDER
+  radFollowUpDays: 7,
   // Combined early-illness rule (PLACEHOLDERS for clinical review)
   earlyZ: 1, // a signal counts when it is 1 SD from normal in the worse direction
   earlySignals: 3, // this many signals at once...
@@ -51,6 +56,14 @@ const EARLY_SIGNALS: { key: 'restingHR' | 'hrv' | 'skinTemp' | 'leukocytes' | 'l
   { key: 'lymphocytes', label: 'lymphocytes down', worse: -1 },
   { key: 'sleepHours', label: 'sleep down', worse: -1 },
 ];
+
+/** The highest personal radiation dose in the follow-up window, if any, and when the follow-up ends. */
+export function radiationFollowUp(days: MemberDay[]): { day: number; dose: number; until: number } | null {
+  const high = days.slice(-T.radFollowUpDays).filter((d) => d.vitals.personalDoseMSv >= T.radFollowUpDose);
+  if (high.length === 0) return null;
+  const peak = high.reduce((a, d) => (d.vitals.personalDoseMSv > a.vitals.personalDoseMSv ? d : a));
+  return { day: peak.day, dose: peak.vitals.personalDoseMSv, until: high[high.length - 1].day + T.radFollowUpDays };
+}
 
 /** Which early signals are present on the last day of `days` (2-day averages vs. personal normal). */
 export function earlySignals(days: MemberDay[], b: Baselines): string[] {
@@ -150,6 +163,23 @@ export function findingsFor(memberId: string, days: MemberDay[], b: Baselines, e
   if (symptoms.length > 0)
     add({ id: 'immune-symptoms', system: 'immune', severity: 'yellow', reveals: 'checkInAnswers',
       message: `Symptoms in the last 3 days: ${symptoms.join(', ')}.` });
+
+  // Radiation absorbed by this person (personal dosimeter)
+  const profile = PROFILES[memberId];
+  const career = profile.priorCareerDoseMSv + days.reduce((sum, d) => sum + d.vitals.personalDoseMSv, 0);
+  const share = career / T.careerLimit;
+  if (share >= T.careerYellow)
+    add({ id: 'rad-career', system: 'environment', severity: sev(share >= T.careerRed), reveals: 'vitals',
+      message: `Career radiation dose ${f0(career)} mSv (${f0(share * 100)}% of the ${T.careerLimit} mSv limit), including ${f0(profile.priorCareerDoseMSv)} mSv from earlier missions.` });
+  // Leukocytes and lymphocytes are sensitive to radiation: after a high personal dose, watch them for a week.
+  const exposure = radiationFollowUp(days);
+  if (exposure) {
+    const lymZ = z(recent(days, (d) => d.blood.lymphocytes), b.lymphocytes);
+    const wbcZ = z(recent(days, (d) => d.blood.leukocytes), b.leukocytes);
+    if (lymZ <= -T.zYellow || wbcZ <= -T.zYellow)
+      add({ id: 'rad-blood', system: 'blood', severity: sev(lymZ <= -T.zYellow && wbcZ <= -T.zYellow), reveals: 'blood',
+        message: `Lymphocytes or leukocytes below normal in the week after a ${f1(exposure.dose)} mSv radiation dose on day ${exposure.day}.` });
+  }
 
   // Mental health: several signals; the status depends on how many are present
   const mental: Omit<Finding, 'memberId' | 'severity'>[] = [];

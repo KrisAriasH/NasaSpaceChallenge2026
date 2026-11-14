@@ -134,6 +134,7 @@ export function FindingCard({ finding, showName }: { finding: Finding; showName?
         <>
           <h3>{g.title}</h3>
           <p className="muted">{finding.message}</p>
+          {finding.note && <p className="context-note">{finding.note}</p>}
           <div className="assign">
             <label className="sr-only" htmlFor={`act-${finding.memberId}-${finding.id}`}>
               Suggested action
