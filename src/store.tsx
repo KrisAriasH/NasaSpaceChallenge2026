@@ -15,6 +15,7 @@ import type {
   UrineTest,
 } from './types';
 import { CREW, MISSION_DAYS, memberById } from './data/crew';
+import { ENVIRONMENTS, isEnvironmentId, type EnvironmentId } from './data/environments';
 import { simulateEnvironment, simulateMember, simulateUrineTests } from './data/simulate';
 import { type Baselines, computeBaselines } from './engine/baseline';
 import { DEFAULT_SHARING, canSee, recordAccess } from './engine/privacy';
@@ -46,6 +47,7 @@ interface Persisted {
   accessLog: AccessLogEntry[];
   journal: Record<string, { day: number; text: string }[]>;
   alertStates: Record<string, AlertState>; // key: memberId:findingId
+  environmentId: EnvironmentId;
 }
 
 const STORAGE_KEY = 'asclepio-v1';
@@ -62,12 +64,15 @@ const INITIAL: Persisted = {
   accessLog: [],
   journal: {},
   alertStates: {},
+  environmentId: 'transit',
 };
 
 function load(): Persisted {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? { ...INITIAL, ...JSON.parse(raw) } : INITIAL;
+    if (!raw) return INITIAL;
+    const parsed = JSON.parse(raw);
+    return { ...INITIAL, ...parsed, environmentId: isEnvironmentId(parsed.environmentId) ? parsed.environmentId : INITIAL.environmentId };
   } catch {
     return INITIAL;
   }
@@ -81,6 +86,9 @@ interface Store {
   page: Page;
   subjectId: string; // crew member opened in the detail page
   go: (page: Page, subjectId?: string) => void;
+  environmentId: EnvironmentId;
+  setEnvironment: (id: EnvironmentId) => void;
+  environment: (typeof ENVIRONMENTS)[EnvironmentId];
 
   env: Environment[];
   /** History of a member up to the current day, with manual entries applied. */
@@ -124,8 +132,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [data]);
 
-  const env = useMemo(() => simulateEnvironment(), []);
-  const simulated = useMemo(() => Object.fromEntries(CREW.map((m) => [m.id, simulateMember(m.id)])), []);
+  const environmentId = data.environmentId;
+  const environment = ENVIRONMENTS[environmentId];
+  const env = useMemo(() => simulateEnvironment(MISSION_DAYS, environmentId), [environmentId]);
+  const simulated = useMemo(() => Object.fromEntries(CREW.map((m) => [m.id, simulateMember(m.id, MISSION_DAYS, environmentId)])), [environmentId]);
   const simulatedUrine = useMemo(() => Object.fromEntries(CREW.map((m) => [m.id, simulateUrineTests(m.id)])), []);
 
   const store = useMemo<Store>(() => {
@@ -151,6 +161,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const role = memberById(id).role;
         setPage(role === 'cmo' ? 'overview' : 'mystatus');
       },
+      environmentId,
+      setEnvironment: (id) => setData((p) => ({ ...p, environmentId: id })),
+      environment,
       page,
       subjectId,
       go: (p, s) => {
@@ -161,7 +174,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       history,
       baselines,
       urineTests,
-      assess: (id) => assessMember(id, history(id), baselines(id), env, urineTests(id)),
+      assess: (id) => assessMember(id, history(id), baselines(id), env, urineTests(id), environmentId),
       can: (sid, category) => canSee(viewer, memberById(sid), category, data.sharing[sid] ?? DEFAULT_SHARING),
       data,
       saveCheckIn: (id, c) =>
@@ -203,7 +216,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }),
       reset: () => setData(INITIAL),
     };
-  }, [day, viewerId, page, subjectId, data, env, simulated, simulatedUrine]);
+  }, [day, viewerId, page, subjectId, data, env, simulated, simulatedUrine, environmentId, environment]);
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }

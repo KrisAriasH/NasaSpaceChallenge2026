@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { CREW, memberById } from '../data/crew';
+import { ENVIRONMENTS } from '../data/environments';
 import { simulateEnvironment, simulateMember, simulateUrineTests } from '../data/simulate';
 import type { SystemKey, UrineTest } from '../types';
 import { computeBaselines } from './baseline';
-import { GUIDANCE } from './guidance';
+import { communicationNote, GUIDANCE } from './guidance';
 import { DEFAULT_SHARING, canGroundSee, canSee } from './privacy';
 import { assessMember } from './rules';
 import { forecasts } from './forecast';
@@ -127,6 +128,22 @@ describe('demo story', () => {
 
   it('tells everyone to shelter on the solar particle event day', () => {
     expect(statusOn('ben', 12).environment.status).toBe('red');
+  });
+
+  it('uses the selected Mars radiation background and communication delay', () => {
+    const transitDays = simulateMember('ben', 30, 'transit');
+    const marsDays = simulateMember('ben', 30, 'mars');
+    const transitFinding = assessMember('ben', transitDays.slice(0, 12), computeBaselines(transitDays), simulateEnvironment(30, 'transit'), [], 'transit')
+      .find((s) => s.system === 'environment')!.findings.find((f) => f.id === 'env-radiation')!;
+    const marsFinding = assessMember('ben', marsDays.slice(0, 12), computeBaselines(marsDays), simulateEnvironment(30, 'mars'), [], 'mars')
+      .find((s) => s.system === 'environment')!.findings.find((f) => f.id === 'env-radiation')!;
+
+    expect(ENVIRONMENTS.mars.radiationBackgroundMSvPerDay).not.toBe(ENVIRONMENTS.transit.radiationBackgroundMSvPerDay);
+    expect(marsFinding.message).not.toBe(transitFinding.message);
+    expect(communicationNote('mars', marsFinding)).toBe(
+      'Ground response takes about 6 to 44 minutes round trip. Decide the first steps with the medical officer.',
+    );
+    expect(communicationNote('transit', marsFinding)).toBeNull();
   });
 
   it('turns Chen mental health yellow, then red, then recommends a conversation', () => {

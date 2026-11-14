@@ -30,12 +30,13 @@ const SCALES: { key: keyof Omit<CheckIn, 'symptoms'>; label: string; low: string
 ];
 
 export function CheckInPage() {
-  const { viewer, history, saveCheckIn, saveReaction, day, data, go } = useStore();
+  const { viewer, history, saveCheckIn, saveReaction, day, data, go, environment } = useStore();
   const today = history(viewer.id).at(-1)!;
   const [form, setForm] = useState<CheckIn>(today.checkIn);
   const [saved, setSaved] = useState(false);
   const [rtSaved, setRtSaved] = useState(false);
   const shared = data.sharing[viewer.id]?.checkInAnswersToCmo;
+  const symptoms = environment.dust ? [...SYMPTOMS, 'cough', 'eye irritation'] : SYMPTOMS;
 
   useEffect(() => {
     setForm(today.checkIn);
@@ -80,7 +81,7 @@ export function CheckInPage() {
             <fieldset>
               <legend>Symptoms</legend>
               <div className="chips">
-                {SYMPTOMS.map((s) => (
+                {symptoms.map((s) => (
                   <button type="button" key={s} aria-pressed={form.symptoms.includes(s)} className={form.symptoms.includes(s) ? 'chip on' : 'chip'} onClick={() => toggle(s)}>
                     {s}
                   </button>

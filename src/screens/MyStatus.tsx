@@ -1,10 +1,10 @@
-import { GUIDANCE, SYSTEM_LABEL } from '../engine/guidance';
+import { communicationNote, GUIDANCE, SYSTEM_LABEL } from '../engine/guidance';
 import { useStore } from '../store';
 import { PageHeader, Panel, StatusPill, TrendArrow } from '../components/ui';
 
 /** The crew member's own view: their status, what to do, and what the medical officer assigned. */
 export function MyStatus() {
-  const { viewer, assess, data, setFollowUpStatus, day, go } = useStore();
+  const { viewer, assess, data, setFollowUpStatus, day, go, environmentId } = useStore();
   const systems = assess(viewer.id);
   const findings = systems.flatMap((s) => s.findings).filter((f) => f.id !== 'mental-conversation');
   const assigned = data.followUps.filter((f) => f.memberId === viewer.id);
@@ -59,6 +59,7 @@ export function MyStatus() {
                 <article key={f.id} className={`finding sev-${f.severity}`}>
                   <h3>{GUIDANCE[f.id].title}</h3>
                   <p className="muted">{f.message}</p>
+                  {communicationNote(environmentId, f) && <p className="context-note">{communicationNote(environmentId, f)}</p>}
                   <ul>
                     {GUIDANCE[f.id].actions.map((a) => (
                       <li key={a}>{a}</li>

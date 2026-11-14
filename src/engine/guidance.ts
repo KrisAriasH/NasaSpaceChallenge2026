@@ -1,4 +1,5 @@
-import type { SystemKey } from '../types';
+import type { Finding, SystemKey } from '../types';
+import type { EnvironmentId } from '../data/environments';
 
 /**
  * Suggested actions per finding. The medical officer assigns one as a follow-up;
@@ -182,7 +183,20 @@ export const GUIDANCE: Record<string, Guidance> = {
     actions: ['Check the CO2 removal system', 'Improve airflow in work and sleep areas', 'Watch for headaches and poor sleep'],
     source: 'NASA OCHMO Carbon Dioxide technical brief',
   },
+  'env-dust': {
+    title: 'Surface dust symptoms',
+    actions: ['Check suit and airlock dust procedures; rinse eyes; report if it persists.'],
+    source: 'NASA human spaceflight risk: planetary dust',
+  },
 };
+
+export function communicationNote(environmentId: EnvironmentId, finding: Finding): string | null {
+  if (finding.severity !== 'red' && !finding.urgent) return null;
+  if (environmentId === 'mars')
+    return 'Ground response takes about 6 to 44 minutes round trip. Decide the first steps with the medical officer.';
+  if (environmentId === 'leo') return 'The flight surgeon can be contacted directly.';
+  return null;
+}
 
 /** Rule metadata shown with every alert, so the medical officer knows which rule fired and its review status. */
 export const RULESET_VERSION = 'v1';

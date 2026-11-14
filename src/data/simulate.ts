@@ -1,5 +1,6 @@
 import type { CheckIn, Environment, MemberDay, UrineTest } from '../types';
 import { CREW, MISSION_DAYS } from './crew';
+import { ENVIRONMENTS, type EnvironmentId } from './environments';
 
 /**
  * Simulated 30-day mission. ALL VALUES ARE PLACEHOLDERS for the demo.
@@ -71,12 +72,13 @@ export function scenarioEvents(env = simulateEnvironment()): ScenarioEvent[] {
   ];
 }
 
-export function simulateEnvironment(days = MISSION_DAYS): Environment[] {
+export function simulateEnvironment(days = MISSION_DAYS, environmentId: EnvironmentId = 'transit'): Environment[] {
   const rand = rng(7);
   const n = (a: number) => (rand() - 0.5) * 2 * a;
+  const radiationBackground = ENVIRONMENTS[environmentId].radiationBackgroundMSvPerDay;
   return Array.from({ length: days }, (_, i) => {
     const day = i + 1;
-    let radiationMSv = 1.8 + n(0.15); // deep-space cruise order of magnitude (Curiosity RAD)
+    let radiationMSv = radiationBackground + n(0.15);
     if (day === 12) radiationMSv += 28;
     if (day === 13) radiationMSv += 6;
     const co2 = 2.3 + n(0.2) + 0.3 * ramp(day, 21);
@@ -114,12 +116,12 @@ export function simulateUrineTests(memberId: string): UrineTest[] {
   return tests.sort((a, b) => a.day - b.day);
 }
 
-export function simulateMember(memberId: string, days = MISSION_DAYS): MemberDay[] {
+export function simulateMember(memberId: string, days = MISSION_DAYS, environmentId: EnvironmentId = 'transit'): MemberDay[] {
   const index = CREW.findIndex((m) => m.id === memberId);
   const rand = rng(100 + index * 31);
   const n = (a: number) => (rand() - 0.5) * 2 * a;
   const female = CREW[index].sex === 'female';
-  const env = simulateEnvironment(days);
+  const env = simulateEnvironment(days, environmentId);
   const doseRand = rng(500 + index * 13); // separate stream so adding the dosimeter leaves other data unchanged
   const bpRand = rng(700 + index * 17);
 

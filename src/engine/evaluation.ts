@@ -1,6 +1,7 @@
 import type { SystemKey } from '../types';
 import { BASELINE_DAYS, CREW, MISSION_DAYS } from '../data/crew';
 import { type ScenarioEvent, scenarioEvents, simulateEnvironment, simulateMember, simulateUrineTests } from '../data/simulate';
+import type { EnvironmentId } from '../data/environments';
 import { computeBaselines } from './baseline';
 import { SYSTEMS, assessMember } from './rules';
 
@@ -28,19 +29,19 @@ export interface Evaluation {
   meanDelay: number;
 }
 
-export function evaluate(): Evaluation {
-  const env = simulateEnvironment();
+export function evaluate(environmentId: EnvironmentId = 'transit'): Evaluation {
+  const env = simulateEnvironment(MISSION_DAYS, environmentId);
   const events = scenarioEvents(env);
   const urineByMember = Object.fromEntries(CREW.map((m) => [m.id, simulateUrineTests(m.id)]));
   // status[memberId][system][day] = alert present?
   const status: Record<string, Record<SystemKey, Record<number, boolean>>> = {};
   for (const m of CREW) {
-    const all = simulateMember(m.id);
+    const all = simulateMember(m.id, MISSION_DAYS, environmentId);
     const urine = urineByMember[m.id];
     const b = computeBaselines(all);
     status[m.id] = Object.fromEntries(SYSTEMS.map((s) => [s, {}])) as Record<SystemKey, Record<number, boolean>>;
     for (let day = BASELINE_DAYS + 1; day <= MISSION_DAYS; day++) {
-      for (const s of assessMember(m.id, all.slice(0, day), b, env, urine)) status[m.id][s.system][day] = s.status !== 'green';
+      for (const s of assessMember(m.id, all.slice(0, day), b, env, urine, environmentId)) status[m.id][s.system][day] = s.status !== 'green';
     }
   }
   const memberFor = (e: ScenarioEvent) => (e.memberId === 'all' ? CREW[0].id : e.memberId);

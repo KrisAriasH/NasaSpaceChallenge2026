@@ -3,7 +3,7 @@ import { useStore } from '../store';
 import { PageHeader, Panel, TrendChart } from '../components/ui';
 
 export function EnvironmentPage() {
-  const { env, day } = useStore();
+  const { env, day, environment } = useStore();
   const today = env[day - 1];
   const total = missionDose(env, day);
   const share = (total / T.careerLimit) * 100;
@@ -17,7 +17,7 @@ export function EnvironmentPage() {
         <div className={`stat${cls(today.radiationMSv, T.radiationYellow, T.radiationRed)}`}>
           <span className="label">Radiation today</span>
           <span className="value">{today.radiationMSv.toFixed(1)} <small>mSv</small></span>
-          <span className="muted small">Usual {T.radiationBackground} mSv/day</span>
+          <span className="muted small">Usual {environment.radiationBackgroundMSvPerDay} mSv/day</span>
         </div>
         <div className="stat">
           <span className="label">Mission dose</span>
