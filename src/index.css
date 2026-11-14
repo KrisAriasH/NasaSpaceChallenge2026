@@ -119,6 +119,19 @@ select, textarea { background: var(--surface); border: 1px solid var(--border); 
 .group-title.urgent { color: var(--red); }
 .acked-group summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .acked-group[open] summary { margin-bottom: 8px; }
+.urgent-banner { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; background: var(--red-bg); border: 1px solid var(--red); border-radius: 10px; }
+.urgent-banner > div { display: grid; gap: 2px; }
+.urgent-banner strong { color: var(--red); }
+.decision-panel { gap: 12px; }
+.decision-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.decision-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.decision-number { font: 700 16px var(--mono); text-align: center; }
+.decision-copy { min-width: 0; display: grid; gap: 3px; }
+.decision-copy h3 { font-size: 14px; }
+.decision-copy p { font-size: 13px; }
+.decision-badge { white-space: nowrap; }
+.pill-observation { color: var(--accent); background: var(--band); }
+.decision-action { white-space: nowrap; }
 .trend { font-weight: 700; font-size: 15px; }
 .trend-up { color: var(--green); } .trend-down { color: var(--red); } .trend-flat { color: var(--muted); }
 .private { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; }
@@ -223,4 +236,12 @@ legend { font-weight: 600; margin-bottom: 6px; }
   .main { padding: 20px 16px 40px; }
   .kpis, .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .systems { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .decision-row { grid-template-columns: 24px minmax(0, 1fr) auto; }
+  .decision-badge { grid-column: 2; justify-self: start; }
+  .decision-action { grid-column: 3; grid-row: 1 / span 2; }
+}
+@media (max-width: 520px) {
+  .decision-row { grid-template-columns: 24px minmax(0, 1fr); }
+  .decision-action { grid-column: 2; grid-row: auto; justify-self: start; }
+  .urgent-banner { align-items: flex-start; }
 }
