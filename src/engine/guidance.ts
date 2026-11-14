@@ -188,6 +188,11 @@ export const GUIDANCE: Record<string, Guidance> = {
     actions: ['Check suit and airlock dust procedures; rinse eyes; report if it persists.'],
     source: 'NASA human spaceflight risk: planetary dust',
   },
+  'vision-change': {
+    title: 'Vision change',
+    actions: ['Repeat the test tomorrow', 'Schedule an eye exam (OCT/fundoscopy) with the medical officer', 'Report headache with blurred vision'],
+    source: 'NASA human spaceflight risk: SANS',
+  },
 };
 
 export function communicationNote(environmentId: EnvironmentId, finding: Finding): string | null {
@@ -209,5 +214,6 @@ export const SYSTEM_LABEL: Record<SystemKey, string> = {
   immune: 'Immune',
   mental: 'Mental health',
   environment: 'Radiation & cabin',
+  vision: 'Vision',
 };
 

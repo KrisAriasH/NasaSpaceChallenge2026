@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CREW, memberById } from '../data/crew';
 import { ENVIRONMENTS } from '../data/environments';
-import { simulateEnvironment, simulateMember, simulateUrineTests } from '../data/simulate';
+import { simulateEnvironment, simulateMember, simulateUrineTests, simulateVisionResults } from '../data/simulate';
 import type { SystemKey, UrineTest } from '../types';
 import { computeBaselines } from './baseline';
 import { communicationNote, GUIDANCE } from './guidance';
@@ -13,7 +13,7 @@ import { evaluate } from './evaluation';
 const env = simulateEnvironment();
 const statusOn = (id: string, day: number) => {
   const days = simulateMember(id);
-  const s = assessMember(id, days.slice(0, day), computeBaselines(days), env);
+  const s = assessMember(id, days.slice(0, day), computeBaselines(days), env, [], 'transit', simulateVisionResults(id));
   return Object.fromEntries(s.map((x) => [x.system, x])) as Record<SystemKey, (typeof s)[number]>;
 };
 
@@ -158,6 +158,18 @@ describe('demo story', () => {
     expect(statusOn('diego', 27).cardio.status).not.toBe('green');
   });
 
+  it('flags Diego vision changes on day 28 but nobody on day 14', () => {
+    const diegoDays = simulateMember('diego');
+    const day28 = assessMember('diego', diegoDays.slice(0, 28), computeBaselines(diegoDays), env, [], 'transit', simulateVisionResults('diego'));
+    expect(day28.find((s) => s.system === 'vision')!.findings.map((f) => f.id)).toContain('vision-change');
+
+    for (const member of CREW) {
+      const days = simulateMember(member.id);
+      const day14 = assessMember(member.id, days.slice(0, 14), computeBaselines(days), env, [], 'transit', simulateVisionResults(member.id));
+      expect(day14.find((s) => s.system === 'vision')!.findings).toHaveLength(0);
+    }
+  });
+
   it('flags Ana immune during her fever', () => {
     expect(statusOn('ana', 26).immune.status).not.toBe('green');
   });
@@ -214,7 +226,7 @@ describe('demo story', () => {
         }
       }
     }
-    for (const id of ['urine-uti', 'urine-blood', 'urine-protein', 'urine-dehydration', 'urine-ph', 'urine-clarity'])
+    for (const id of ['urine-uti', 'urine-blood', 'urine-protein', 'urine-dehydration', 'urine-ph', 'urine-clarity', 'env-dust', 'vision-change'])
       expect(GUIDANCE[id], id).toBeDefined();
   });
 

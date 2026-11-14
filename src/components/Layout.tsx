@@ -25,7 +25,7 @@ export function Layout({ children }: { children: ReactNode }) {
         : [];
   const personal: NavItem[] = [
     { page: 'mystatus', label: 'My status' },
-    { page: 'checkin', label: 'Daily check-in' },
+    { page: 'checkin', label: 'Tests and check-in' },
     { page: 'privacy', label: 'My privacy' },
     { page: 'journal', label: 'Private journal' },
   ];

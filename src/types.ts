@@ -62,6 +62,12 @@ export interface UrineTest {
   nitrites: 'negative' | 'positive';
 }
 
+export interface VisionResult {
+  day: number;
+  acuityStep: number;
+  amslerMarks: { row: number; column: number }[];
+}
+
 /** 30-second daily self-report. Private by default. */
 export interface CheckIn {
   mood: number; // 1 very low – 5 very good
@@ -92,7 +98,7 @@ export interface MemberDay {
   reaction: ReactionResult;
 }
 
-export type SystemKey = 'cardio' | 'blood' | 'immune' | 'bone' | 'mental' | 'environment';
+export type SystemKey = 'cardio' | 'blood' | 'immune' | 'bone' | 'mental' | 'environment' | 'vision';
 export type Status = 'green' | 'yellow' | 'red';
 export type Trend = 'up' | 'flat' | 'down'; // up = getting better
 

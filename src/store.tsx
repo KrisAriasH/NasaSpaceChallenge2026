@@ -13,10 +13,11 @@ import type {
   SharingSettings,
   SystemStatus,
   UrineTest,
+  VisionResult,
 } from './types';
 import { CREW, MISSION_DAYS, memberById } from './data/crew';
 import { ENVIRONMENTS, isEnvironmentId, type EnvironmentId } from './data/environments';
-import { simulateEnvironment, simulateMember, simulateUrineTests } from './data/simulate';
+import { simulateEnvironment, simulateMember, simulateUrineTests, simulateVisionResults } from './data/simulate';
 import { type Baselines, computeBaselines } from './engine/baseline';
 import { DEFAULT_SHARING, canSee, recordAccess } from './engine/privacy';
 import { assessMember } from './engine/rules';
@@ -42,6 +43,7 @@ interface Persisted {
   checkIns: Record<string, Record<number, CheckIn>>; // memberId -> day -> manual check-in
   reactions: Record<string, Record<number, ReactionResult>>;
   urineTests: Record<string, UrineTest[]>;
+  visionResults: Record<string, Record<number, VisionResult>>;
   sharing: Record<string, SharingSettings>;
   followUps: FollowUp[];
   accessLog: AccessLogEntry[];
@@ -56,6 +58,7 @@ const INITIAL: Persisted = {
   checkIns: {},
   reactions: {},
   urineTests: {},
+  visionResults: {},
   // Ben already shares his answers with the medical officer; the others don't.
   sharing: Object.fromEntries(
     CREW.map((m) => [m.id, { ...DEFAULT_SHARING, checkInAnswersToCmo: m.id === 'ben' }]),
@@ -95,6 +98,7 @@ interface Store {
   history: (memberId: string) => MemberDay[];
   baselines: (memberId: string) => Baselines;
   urineTests: (memberId: string) => UrineTest[];
+  visionResults: (memberId: string) => VisionResult[];
   assess: (memberId: string) => SystemStatus[];
   /** Privacy check from the current viewer's point of view. */
   can: (subjectId: string, category: DataCategory) => boolean;
@@ -103,6 +107,7 @@ interface Store {
   saveCheckIn: (memberId: string, c: CheckIn) => void;
   saveReaction: (memberId: string, r: ReactionResult) => void;
   saveUrineTest: (memberId: string, test: UrineTest) => void;
+  saveVisionResult: (memberId: string, result: VisionResult) => void;
   setSharing: (memberId: string, s: SharingSettings) => void;
   addFollowUp: (f: Omit<FollowUp, 'id' | 'status' | 'createdDay'>) => void;
   setFollowUpStatus: (id: string, status: FollowUp['status']) => void;
@@ -137,6 +142,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const env = useMemo(() => simulateEnvironment(MISSION_DAYS, environmentId), [environmentId]);
   const simulated = useMemo(() => Object.fromEntries(CREW.map((m) => [m.id, simulateMember(m.id, MISSION_DAYS, environmentId)])), [environmentId]);
   const simulatedUrine = useMemo(() => Object.fromEntries(CREW.map((m) => [m.id, simulateUrineTests(m.id)])), []);
+  const simulatedVision = useMemo(() => Object.fromEntries(CREW.map((m) => [m.id, simulateVisionResults(m.id)])), []);
 
   const store = useMemo<Store>(() => {
     const full = (id: string): MemberDay[] =>
@@ -150,6 +156,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const history = (id: string) => full(id).slice(0, day);
     const urineTests = (id: string) =>
       [...simulatedUrine[id], ...(data.urineTests?.[id] ?? [])].sort((a, b) => a.day - b.day);
+    const visionResults = (id: string) =>
+      [...simulatedVision[id], ...Object.values(data.visionResults?.[id] ?? {})].sort((a, b) => a.day - b.day);
     const viewer = memberById(viewerId);
 
     return {
@@ -174,7 +182,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       history,
       baselines,
       urineTests,
-      assess: (id) => assessMember(id, history(id), baselines(id), env, urineTests(id), environmentId),
+      visionResults,
+      assess: (id) => assessMember(id, history(id), baselines(id), env, urineTests(id), environmentId, visionResults(id)),
       can: (sid, category) => canSee(viewer, memberById(sid), category, data.sharing[sid] ?? DEFAULT_SHARING),
       data,
       saveCheckIn: (id, c) =>
@@ -183,6 +192,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setData((p) => ({ ...p, reactions: { ...p.reactions, [id]: { ...p.reactions[id], [day]: r } } })),
       saveUrineTest: (id, test) =>
         setData((p) => ({ ...p, urineTests: { ...p.urineTests, [id]: [...(p.urineTests?.[id] ?? []), test] } })),
+      saveVisionResult: (id, result) =>
+        setData((p) => ({ ...p, visionResults: { ...p.visionResults, [id]: { ...p.visionResults?.[id], [result.day]: result } } })),
       setSharing: (id, s) => setData((p) => ({ ...p, sharing: { ...p.sharing, [id]: s } })),
       addFollowUp: (f) =>
         setData((p) => ({
@@ -216,7 +227,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }),
       reset: () => setData(INITIAL),
     };
-  }, [day, viewerId, page, subjectId, data, env, simulated, simulatedUrine, environmentId, environment]);
+  }, [day, viewerId, page, subjectId, data, env, simulated, simulatedUrine, simulatedVision, environmentId, environment]);
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }

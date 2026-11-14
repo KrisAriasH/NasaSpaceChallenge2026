@@ -1,4 +1,4 @@
-import type { CheckIn, Environment, MemberDay, UrineTest } from '../types';
+import type { CheckIn, Environment, MemberDay, UrineTest, VisionResult } from '../types';
 import { CREW, MISSION_DAYS } from './crew';
 import { ENVIRONMENTS, type EnvironmentId } from './environments';
 
@@ -66,6 +66,7 @@ export function scenarioEvents(env = simulateEnvironment()): ScenarioEvent[] {
     { memberId: 'diego', system: 'blood', start: 9, label: 'Diego: vitamin D and iron falling' },
     { memberId: 'diego', system: 'bone', start: 17, label: 'Diego: exercise skipped' },
     { memberId: 'diego', system: 'cardio', start: 23, label: 'Diego: heart rate rising' },
+    { memberId: 'diego', system: 'vision', start: 26, end: 28, label: 'Diego: visual changes with headache and blurred vision' },
     { memberId: 'diego', system: 'environment', start: 12, label: 'Diego: career radiation dose above 50% of the limit' },
     { memberId: 'chen', system: 'immune', start: 15, end: 18, label: 'Chen: urinary discomfort reported' },
     { memberId: 'diego', system: 'immune', start: 26, label: 'Diego: headache with blurred vision' },
@@ -114,6 +115,18 @@ export function simulateUrineTests(memberId: string): UrineTest[] {
     });
   }
   return tests.sort((a, b) => a.day - b.day);
+}
+
+export function simulateVisionResults(memberId: string, days = MISSION_DAYS): VisionResult[] {
+  return [7, 14, 21, 28]
+    .filter((day) => day <= days)
+    .map((day) => ({
+      day,
+      acuityStep: memberId === 'diego' && day === 28 ? 6 : 8,
+      amslerMarks: memberId === 'diego' && day === 28
+        ? [{ row: 1, column: 2 }, { row: 2, column: 3 }, { row: 3, column: 1 }]
+        : [],
+    }));
 }
 
 export function simulateMember(memberId: string, days = MISSION_DAYS, environmentId: EnvironmentId = 'transit'): MemberDay[] {

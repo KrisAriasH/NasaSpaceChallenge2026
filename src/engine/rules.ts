@@ -1,4 +1,4 @@
-import type { Environment, Finding, MemberDay, Status, SystemKey, SystemStatus, Trend, UrineTest } from '../types';
+import type { Environment, Finding, MemberDay, Status, SystemKey, SystemStatus, Trend, UrineTest, VisionResult } from '../types';
 import { PROFILES } from '../data/crew';
 import { ENVIRONMENTS, type EnvironmentId } from '../data/environments';
 import { type Baselines, recent, valueOf, z } from './baseline';
@@ -90,7 +90,7 @@ const f0 = (n: number) => n.toFixed(0);
 const f1 = (n: number) => n.toFixed(1);
 const sev = (red: boolean): Finding['severity'] => (red ? 'red' : 'yellow');
 
-export const SYSTEMS: SystemKey[] = ['cardio', 'blood', 'immune', 'bone', 'mental', 'environment'];
+export const SYSTEMS: SystemKey[] = ['cardio', 'blood', 'immune', 'bone', 'mental', 'environment', 'vision'];
 
 /** All findings for one person, using their history up to and including today. */
 export function findingsFor(
@@ -100,6 +100,7 @@ export function findingsFor(
   env: Environment[],
   urine: UrineTest[] = [],
   environmentId: EnvironmentId = 'transit',
+  vision: VisionResult[] = [],
 ): Finding[] {
   if (days.length === 0) return [];
   const today = days[days.length - 1];
@@ -226,6 +227,25 @@ export function findingsFor(
         message: `Urine day ${latestUrine.day}: clarity ${latestUrine.clarity}.` });
   }
 
+    const orderedVision = [...vision].sort((a, b) => a.day - b.day);
+    const latestVision = orderedVision.filter((result) => result.day <= today.day).at(-1);
+    const firstVision = orderedVision[0];
+    if (latestVision && firstVision) {
+      const acuityChanged = firstVision.acuityStep - latestVision.acuityStep >= 2;
+      const hasAmslerMarks = latestVision.amslerMarks.length > 0;
+      const headacheWithBlurredVision = symptoms.includes('headache') && symptoms.includes('blurred vision');
+      if (acuityChanged || hasAmslerMarks) {
+        const red = (acuityChanged && hasAmslerMarks) || headacheWithBlurredVision;
+        add({
+          id: 'vision-change',
+          system: 'vision',
+          severity: red ? 'red' : 'yellow',
+          reveals: 'vitals',
+          message: `Vision test day ${latestVision.day}: acuity step ${latestVision.acuityStep} (baseline ${firstVision.acuityStep}), ${latestVision.amslerMarks.length} Amsler mark${latestVision.amslerMarks.length === 1 ? '' : 's'}.`,
+        });
+      }
+    }
+
   // Radiation absorbed by this person (personal dosimeter)
   const profile = PROFILES[memberId];
   const career = profile.priorCareerDoseMSv + days.reduce((sum, d) => sum + d.vitals.personalDoseMSv, 0);
@@ -293,9 +313,10 @@ export function assessMember(
   env: Environment[],
   urine: UrineTest[] = [],
   environmentId: EnvironmentId = 'transit',
+  vision: VisionResult[] = [],
 ): SystemStatus[] {
-  const now = findingsFor(memberId, days, b, env, urine, environmentId);
-  const before = days.length > 3 ? findingsFor(memberId, days.slice(0, -3), b, env, urine, environmentId) : now;
+  const now = findingsFor(memberId, days, b, env, urine, environmentId, vision);
+  const before = days.length > 3 ? findingsFor(memberId, days.slice(0, -3), b, env, urine, environmentId, vision) : now;
 
   const result = SYSTEMS.map((system): SystemStatus => {
     const a = now.filter((f) => f.system === system);

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { CheckIn } from '../types';
+import type { CheckIn, VisionResult } from '../types';
 import { useStore } from '../store';
 import { ReactionTest } from '../components/ReactionTest';
+import { AmslerTest } from '../components/AmslerTest';
+import { VisionAcuityTest } from '../components/VisionAcuityTest';
 import { PageHeader, Panel, Private } from '../components/ui';
 
 const SYMPTOMS = [
@@ -30,18 +32,35 @@ const SCALES: { key: keyof Omit<CheckIn, 'symptoms'>; label: string; low: string
 ];
 
 export function CheckInPage() {
-  const { viewer, history, saveCheckIn, saveReaction, day, data, go, environment } = useStore();
+  const { viewer, history, saveCheckIn, saveReaction, saveVisionResult, day, data, go, environment } = useStore();
   const today = history(viewer.id).at(-1)!;
   const [form, setForm] = useState<CheckIn>(today.checkIn);
   const [saved, setSaved] = useState(false);
   const [rtSaved, setRtSaved] = useState(false);
+  const [farAcuity, setFarAcuity] = useState<number>();
+  const [nearAcuity, setNearAcuity] = useState<number>();
+  const [amslerMarks, setAmslerMarks] = useState<VisionResult['amslerMarks']>();
+  const [visionSaved, setVisionSaved] = useState(false);
   const shared = data.sharing[viewer.id]?.checkInAnswersToCmo;
   const symptoms = environment.dust ? [...SYMPTOMS, 'cough', 'eye irritation'] : SYMPTOMS;
+  const weekStart = Math.floor((day - 1) / 7) * 7 + 1;
+  const weekDays = Array.from({ length: 7 }, (_, index) => weekStart + index).filter((d) => d <= 30);
+  const countInWeek = (values: number[]) => values.filter((d) => weekDays.includes(d)).length;
+  const visionDue = day % 7 === 0 && !data.visionResults?.[viewer.id]?.[day];
+  const recordVision = () => {
+    if (farAcuity === undefined || nearAcuity === undefined || amslerMarks === undefined || visionSaved) return;
+    saveVisionResult(viewer.id, { day, acuityStep: Math.min(farAcuity, nearAcuity), amslerMarks });
+    setVisionSaved(true);
+  };
 
   useEffect(() => {
     setForm(today.checkIn);
     setSaved(false);
     setRtSaved(false);
+    setFarAcuity(undefined);
+    setNearAcuity(undefined);
+    setAmslerMarks(undefined);
+    setVisionSaved(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [day, viewer.id]);
 
@@ -53,6 +72,11 @@ export function CheckInPage() {
       <PageHeader eyebrow={`Mission day ${day}`} title="Daily check-in">
         {shared ? <span className="muted small">Your answers are shared with your medical officer</span> : <Private>Answers private</Private>}
       </PageHeader>
+      {visionDue && (
+        <Panel title="Today's tasks">
+          <p>Vision self-tests are due today.</p>
+        </Panel>
+      )}
       <div className="two-col">
         <Panel title="How are you today? (30 seconds)">
           <form
@@ -109,6 +133,28 @@ export function CheckInPage() {
           {rtSaved && <p className="muted small">Result saved for day {day}.</p>}
         </Panel>
       </div>
+      <Panel title="Vision self-tests">
+        <p className="muted small">For tracking changes over time, not a diagnosis.</p>
+        <div className="two-col">
+          <VisionAcuityTest label="Distance vision" onComplete={setFarAcuity} />
+          <VisionAcuityTest label="Near vision" instruction="Hold the screen at reading distance." onComplete={setNearAcuity} />
+        </div>
+        <AmslerTest onComplete={setAmslerMarks} />
+        <div className="row">
+          <button type="button" className="btn" disabled={farAcuity === undefined || nearAcuity === undefined || amslerMarks === undefined || visionSaved} onClick={recordVision}>
+            {visionSaved ? 'Vision result saved' : 'Save vision result'}
+          </button>
+          {visionSaved && <span className="muted small">Saved for day {day}.</span>}
+        </div>
+      </Panel>
+      <Panel title="Weekly record">
+        <p className="muted">
+          This week: {countInWeek(Object.keys(data.checkIns[viewer.id] ?? {}).map(Number))} of 7 check-ins,{' '}
+          {countInWeek(Object.keys(data.reactions[viewer.id] ?? {}).map(Number))} of 7 reaction tests,{' '}
+          {countInWeek(Object.keys(data.visionResults?.[viewer.id] ?? {}).map(Number))} of 1 vision test.
+        </p>
+        <p className="muted small">Vision tests are scheduled weekly.</p>
+      </Panel>
     </>
   );
 }
