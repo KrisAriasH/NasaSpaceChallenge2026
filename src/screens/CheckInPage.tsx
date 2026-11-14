@@ -4,7 +4,22 @@ import { useStore } from '../store';
 import { ReactionTest } from '../components/ReactionTest';
 import { PageHeader, Panel, Private } from '../components/ui';
 
-const SYMPTOMS = ['headache', 'congestion', 'nausea', 'back pain', 'blurred vision', 'urinary discomfort', 'dizziness'];
+const SYMPTOMS = [
+  'headache',
+  'congestion',
+  'nausea',
+  'back pain',
+  'blurred vision',
+  'urinary discomfort',
+  'dizziness',
+  'sore throat',
+  'cramps',
+  'hair loss',
+  'nail weakness',
+  'chest pain',
+  'constipation',
+  'tooth weakness or pain',
+];
 
 const SCALES: { key: keyof Omit<CheckIn, 'symptoms'>; label: string; low: string; high: string }[] = [
   { key: 'mood', label: 'Mood', low: 'Very low', high: 'Very good' },
