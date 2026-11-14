@@ -1,13 +1,13 @@
-# Asclepio
+# Asclepius
 
 **The STEAMers · NASA Space Apps Challenge 2026**
 Challenge: *Create Health Monitoring Software for Astronauts on Space Missions*
 
-Asclepio is a desktop app for the **Crew Medical Officer (CMO)**, the astronaut in charge of medical
-care on board. It **gathers** each crew member's indicators (smart-shirt vitals, a daily finger-prick
+Asclepius is an astronaut-first desktop app for monitoring personal health during a mission. It
+**gathers** each crew member's indicators (smart-shirt vitals, a daily finger-prick
 blood panel, a reaction test, a 30-second check-in and habitat sensors), **evaluates** them against
-each person's own normal, warns early when a measure is heading out of range, and helps the CMO and
-each astronaut **act**.
+each person's own normal, warns early when a measure is heading out of range, and gives the astronaut
+clear next steps. A separate medical officer workspace supports crew review.
 
 Each crew member stays in control of their mental health data: the CMO sees the mental health
 **status** (green / yellow / red), but check-in answers only if the person shares them, and the
@@ -24,8 +24,9 @@ npm test         # privacy policy and demo-story tests
 npm run build
 ```
 
-Use **Viewing as** (top left-) to switch between the CMO (Ana), the backup medical officer (Ben) and
-crew members (Chen, Diego). Use the **mission day** slider (bottom left) to move through the story.
+Use **Viewing as** to switch between the CMO (Ana), the backup medical officer (Ben) and crew
+members (Chen, Diego). The default page is **Today** for every viewer. Use the **mission day** slider
+to move through the story.
 
 ## Demo story
 
@@ -77,7 +78,7 @@ after a change starts. These numbers describe the demo scenario only, not real-w
 | `src/engine/guidance.ts` | Suggested actions per finding, sex-specific notes |
 | `src/data/simulate.ts` | Simulated crew, blood panel and habitat |
 | `src/store.tsx` | App state; what people type is saved in the browser |
-| `src/screens/*` | CMO: overview, alerts, member detail, follow-ups. Crew: my status, check-in + reaction test, privacy, journal. Environment |
+| `src/screens/*` | Astronaut: Today, check-in, tests, trends, patterns, privacy and journal. Medical officer: crew overview, alerts, reports, follow-ups and validation |
 
 ## Data sources
 

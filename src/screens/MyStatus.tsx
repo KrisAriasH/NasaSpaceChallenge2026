@@ -1,11 +1,14 @@
-import { communicationNote, GUIDANCE, SYSTEM_LABEL } from '../engine/guidance';
+import { communicationNote, GUIDANCE } from '../engine/guidance';
 import { useStore } from '../store';
-import { PageHeader, Panel, StatusPill, TrendArrow } from '../components/ui';
+import { PageHeader, Panel } from '../components/ui';
+import { SystemCards } from '../components/SystemCards';
 
 /** The crew member's own view: their status, what to do, and what the medical officer assigned. */
 export function MyStatus() {
-  const { viewer, assess, data, setFollowUpStatus, day, go, environmentId } = useStore();
+  const { viewer, assess, data, setFollowUpStatus, day, go, environmentId, history, env, visionResults } = useStore();
   const systems = assess(viewer.id);
+  const dayData = history(viewer.id).at(-1)!;
+  const latestVision = visionResults(viewer.id).filter((result) => result.day <= day).at(-1);
   const findings = systems.flatMap((s) => s.findings).filter((f) => f.id !== 'mental-conversation');
   const assigned = data.followUps.filter((f) => f.memberId === viewer.id);
   const checkedIn = data.checkIns[viewer.id]?.[day];
@@ -18,16 +21,7 @@ export function MyStatus() {
         )}
       </PageHeader>
 
-      <div className="systems">
-        {systems.map((s) => (
-          <div key={s.system} className={`system system-${s.status}`}>
-            <span className="system-name">{SYSTEM_LABEL[s.system]}</span>
-            <span className="system-status">
-              <StatusPill status={s.status} urgent={s.urgent} /> <TrendArrow trend={s.trend} />
-            </span>
-          </div>
-        ))}
-      </div>
+      <SystemCards systems={systems} dayData={dayData} environment={env[day - 1]} vision={latestVision} />
 
       <div className="two-col">
         <Panel title="From your medical officer">

@@ -9,6 +9,7 @@ import { DEFAULT_SHARING, canGroundSee, canSee } from './privacy';
 import { assessMember } from './rules';
 import { forecasts } from './forecast';
 import { evaluate } from './evaluation';
+import { patternsFor } from './patterns';
 
 const env = simulateEnvironment();
 const statusOn = (id: string, day: number) => {
@@ -235,6 +236,15 @@ describe('demo story', () => {
     const findings = assessMember('chen', days.slice(0, 16), computeBaselines(days), env, simulateUrineTests('chen'))
       .find((s) => s.system === 'immune')!.findings;
     expect(findings.map((f) => f.id)).toContain('urine-uti');
+  });
+
+  it('detects Chen isolation and workload patterns by day 25', () => {
+    const patterns = patternsFor(simulateMember('chen').slice(0, 25));
+    expect(patterns.map((pattern) => pattern.id)).toEqual(expect.arrayContaining(['isolation', 'workload']));
+  });
+
+  it('does not report patterns on day 14', () => {
+    for (const member of CREW) expect(patternsFor(simulateMember(member.id).slice(0, 14))).toHaveLength(0);
   });
 
   it('does not apply routine urine tests before they are recent', () => {

@@ -137,6 +137,7 @@ export function simulateMember(memberId: string, days = MISSION_DAYS, environmen
   const env = simulateEnvironment(days, environmentId);
   const doseRand = rng(500 + index * 13); // separate stream so adding the dosimeter leaves other data unchanged
   const bpRand = rng(700 + index * 17);
+  const checkInRand = rng(900 + index * 19);
 
   return Array.from({ length: days }, (_, i) => {
     const day = i + 1;
@@ -156,6 +157,8 @@ export function simulateMember(memberId: string, days = MISSION_DAYS, environmen
     let meanMs = 270 + index * 8 + n(15);
     let lapses = Math.max(0, Math.round(1 + n(1)));
     const symptoms: string[] = [];
+    const contactRand = checkInRand();
+    const workHoursRand = checkInRand();
     let leukocytes = 6.5 + n(0.6);
     let lymphocytes = 2.1 + n(0.25);
     const eosinophils = 0.18 + n(0.05);
@@ -213,6 +216,14 @@ export function simulateMember(memberId: string, days = MISSION_DAYS, environmen
       energy: scale(energy),
       connection: scale(connection),
       symptoms,
+      contact: memberId === 'chen' && day >= 20
+        ? (contactRand < 0.8 ? ['nobody'] : ['crew'])
+        : contactRand < 0.45
+          ? ['crew']
+          : contactRand < 0.8
+            ? ['family']
+            : ['crew', 'family'],
+      workHours: memberId === 'chen' && day >= 19 ? 11 : 8 + Math.round(workHoursRand),
     };
 
     return {

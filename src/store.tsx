@@ -14,12 +14,14 @@ import type {
   SystemStatus,
   UrineTest,
   VisionResult,
+  Report,
+  ReportCategory,
 } from './types';
 import { CREW, MISSION_DAYS, memberById } from './data/crew';
 import { ENVIRONMENTS, isEnvironmentId, type EnvironmentId } from './data/environments';
 import { simulateEnvironment, simulateMember, simulateUrineTests, simulateVisionResults } from './data/simulate';
 import { type Baselines, computeBaselines } from './engine/baseline';
-import { DEFAULT_SHARING, canSee, recordAccess } from './engine/privacy';
+import { DEFAULT_SHARING, canSee, isMedicalReviewer, recordAccess } from './engine/privacy';
 import { assessMember } from './engine/rules';
 
 /**
@@ -29,12 +31,15 @@ import { assessMember } from './engine/rules';
 
 export type Page =
   | 'overview'
+  | 'today'
   | 'alerts'
   | 'member'
   | 'followups'
   | 'environment'
   | 'checkin'
-  | 'mystatus'
+  | 'tests'
+  | 'patterns'
+  | 'reports'
   | 'privacy'
   | 'journal'
   | 'validation';
@@ -49,6 +54,7 @@ interface Persisted {
   accessLog: AccessLogEntry[];
   journal: Record<string, { day: number; text: string }[]>;
   alertStates: Record<string, AlertState>; // key: memberId:findingId
+  reports: Report[];
   environmentId: EnvironmentId;
 }
 
@@ -67,6 +73,7 @@ const INITIAL: Persisted = {
   accessLog: [],
   journal: {},
   alertStates: {},
+  reports: [],
   environmentId: 'transit',
 };
 
@@ -108,6 +115,9 @@ interface Store {
   saveReaction: (memberId: string, r: ReactionResult) => void;
   saveUrineTest: (memberId: string, test: UrineTest) => void;
   saveVisionResult: (memberId: string, result: VisionResult) => void;
+  submitReport: (report: Omit<Report, 'id' | 'readByCmo'>) => void;
+  markReportRead: (id: string) => void;
+  logReportView: (report: Report) => void;
   setSharing: (memberId: string, s: SharingSettings) => void;
   addFollowUp: (f: Omit<FollowUp, 'id' | 'status' | 'createdDay'>) => void;
   setFollowUpStatus: (id: string, status: FollowUp['status']) => void;
@@ -125,7 +135,7 @@ const Ctx = createContext<Store | null>(null);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [day, setDay] = useState(24); // start mid-story for the demo
   const [viewerId, setViewerId] = useState('ana');
-  const [page, setPage] = useState<Page>('overview');
+  const [page, setPage] = useState<Page>('today');
   const [subjectId, setSubjectId] = useState('chen');
   const [data, setData] = useState<Persisted>(load);
 
@@ -148,7 +158,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const full = (id: string): MemberDay[] =>
       simulated[id].map((d) => ({
         ...d,
-        checkIn: data.checkIns[id]?.[d.day] ?? d.checkIn,
+        checkIn: {
+          ...d.checkIn,
+          ...(data.checkIns[id]?.[d.day] ?? {}),
+          contact: data.checkIns[id]?.[d.day]?.contact ?? d.checkIn.contact,
+          workHours: data.checkIns[id]?.[d.day]?.workHours ?? d.checkIn.workHours,
+        },
         reaction: data.reactions[id]?.[d.day] ?? d.reaction,
       }));
     const baselineCache: Record<string, Baselines> = {};
@@ -166,8 +181,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       viewer,
       setViewer: (id) => {
         setViewerId(id);
-        const role = memberById(id).role;
-        setPage(role === 'cmo' ? 'overview' : 'mystatus');
+        setPage('today');
       },
       environmentId,
       setEnvironment: (id) => setData((p) => ({ ...p, environmentId: id })),
@@ -184,7 +198,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       urineTests,
       visionResults,
       assess: (id) => assessMember(id, history(id), baselines(id), env, urineTests(id), environmentId, visionResults(id)),
-      can: (sid, category) => canSee(viewer, memberById(sid), category, data.sharing[sid] ?? DEFAULT_SHARING),
+      can: (sid, category) => {
+        const subject = memberById(sid);
+        const reportShares = isMedicalReviewer(viewer, subject) && (data.reports ?? []).some(
+          (report) => category !== 'journal'
+            && report.memberId === sid
+            && report.day === day
+            && report.includes.includes(category),
+        );
+        return canSee(viewer, subject, category, data.sharing[sid] ?? DEFAULT_SHARING) || reportShares;
+      },
       data,
       saveCheckIn: (id, c) =>
         setData((p) => ({ ...p, checkIns: { ...p.checkIns, [id]: { ...p.checkIns[id], [day]: c } } })),
@@ -194,6 +217,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setData((p) => ({ ...p, urineTests: { ...p.urineTests, [id]: [...(p.urineTests?.[id] ?? []), test] } })),
       saveVisionResult: (id, result) =>
         setData((p) => ({ ...p, visionResults: { ...p.visionResults, [id]: { ...p.visionResults?.[id], [result.day]: result } } })),
+      submitReport: (report) =>
+        setData((p) => ({
+          ...p,
+          reports: [...(p.reports ?? []), {
+            ...report,
+            includes: report.includes.filter((category) => category !== 'journal'),
+            id: `${Date.now()}-${viewerId}`,
+            readByCmo: false,
+          }],
+        })),
+      markReportRead: (id) =>
+        setData((p) => ({ ...p, reports: (p.reports ?? []).map((report) => report.id === id ? { ...report, readByCmo: true } : report) })),
+      logReportView: (report) =>
+        setData((p) => {
+          const categories = report.includes.filter((category): category is Exclude<ReportCategory, 'patterns'> => category !== 'patterns');
+          const next = recordAccess(p.accessLog, { viewerId, subjectId: report.memberId, day: report.day, categories });
+          return next === p.accessLog ? p : { ...p, accessLog: next };
+        }),
       setSharing: (id, s) => setData((p) => ({ ...p, sharing: { ...p.sharing, [id]: s } })),
       addFollowUp: (f) =>
         setData((p) => ({

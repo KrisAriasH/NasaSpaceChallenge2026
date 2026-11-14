@@ -1,4 +1,4 @@
-# Asclepio — Guía para el equipo
+# Asclepius — Guía para el equipo
 
 Base creada el sábado 14 durante el evento. Ya funciona de punta a punta con datos simulados.
 Prioridad: que sea **válida científicamente**, que la **privacidad** se vea clara en la demo y

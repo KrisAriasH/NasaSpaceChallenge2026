@@ -3,7 +3,7 @@ import type { EnvironmentId } from '../data/environments';
 
 /**
  * Suggested actions per finding. The medical officer assigns one as a follow-up;
- * the crew member sees it in "My status".
+ * the crew member sees it on Today.
  * `source`: TODO for the science lead unless a reference is given.
  */
 export interface Guidance {

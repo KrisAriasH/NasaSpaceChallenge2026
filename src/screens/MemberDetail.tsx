@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import type { DataCategory, MemberDay, UrineTest } from '../types';
 import { PROFILES, ROLE_LABEL, memberById } from '../data/crew';
 import type { BaselineKey } from '../engine/baseline';
-import { SYSTEM_LABEL } from '../engine/guidance';
 import { forecasts } from '../engine/forecast';
 import { T, radiationFollowUp } from '../engine/rules';
 import { ALL_CATEGORIES } from '../engine/privacy';
 import { useStore } from '../store';
 import { FindingList } from '../components/FindingCard';
-import { PageHeader, Panel, Private, StatusPill, TrendArrow, TrendChart } from '../components/ui';
+import { PageHeader, Panel, Private, TrendChart } from '../components/ui';
+import { SystemCards } from '../components/SystemCards';
 
 interface Metric {
   key: string;
@@ -53,7 +53,7 @@ const DEFAULT_URINE_FORM: UrineForm = {
 };
 
 export function MemberDetail({ memberId }: { memberId: string }) {
-  const { viewer, can, assess, history, baselines, logAccess, data, day, urineTests, saveUrineTest } = useStore();
+  const { viewer, can, assess, history, baselines, logAccess, data, day, env, urineTests, visionResults, saveUrineTest } = useStore();
   const member = memberById(memberId);
   const isSelf = viewer.id === memberId;
   const allowed = can(memberId, 'vitals');
@@ -75,6 +75,8 @@ export function MemberDetail({ memberId }: { memberId: string }) {
 
   const systems = assess(memberId);
   const days = history(memberId);
+  const latestDay = days.at(-1)!;
+  const latestVision = visionResults(memberId).filter((result) => result.day <= day).at(-1);
   const b = baselines(memberId);
   const metrics = METRICS.filter((m) => can(memberId, m.category));
   const current = metrics.find((m) => m.key === metric) ?? metrics[0];
@@ -103,16 +105,7 @@ export function MemberDetail({ memberId }: { memberId: string }) {
         {!isSelf && !answersShared && <Private>Check-in answers not shared</Private>}
       </PageHeader>
 
-      <div className="systems">
-        {systems.map((s) => (
-          <div key={s.system} className={`system system-${s.status}`}>
-            <span className="system-name">{SYSTEM_LABEL[s.system]}</span>
-            <span className="system-status">
-              <StatusPill status={s.status} urgent={s.urgent} /> <TrendArrow trend={s.trend} />
-            </span>
-          </div>
-        ))}
-      </div>
+      <SystemCards systems={systems} dayData={latestDay} environment={env[day - 1]} vision={latestVision} />
 
       <div className="two-col">
         <Panel

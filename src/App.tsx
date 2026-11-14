@@ -6,7 +6,10 @@ import { MemberDetail } from './screens/MemberDetail';
 import { FollowUps } from './screens/FollowUps';
 import { EnvironmentPage } from './screens/EnvironmentPage';
 import { CheckInPage } from './screens/CheckInPage';
-import { MyStatus } from './screens/MyStatus';
+import { TestsPage } from './screens/TestsPage';
+import { TodayPage } from './screens/TodayPage';
+import { PatternsPage } from './screens/PatternsPage';
+import { ReportsPage } from './screens/ReportsPage';
 import { PrivacyPage } from './screens/PrivacyPage';
 import { JournalPage } from './screens/JournalPage';
 import { Validation } from './screens/Validation';
@@ -14,6 +17,8 @@ import { Validation } from './screens/Validation';
 function Screen() {
   const { page, subjectId } = useStore();
   switch (page) {
+    case 'today':
+      return <TodayPage />;
     case 'overview':
       return <CrewOverview />;
     case 'alerts':
@@ -26,8 +31,12 @@ function Screen() {
       return <EnvironmentPage />;
     case 'checkin':
       return <CheckInPage />;
-    case 'mystatus':
-      return <MyStatus />;
+    case 'tests':
+      return <TestsPage />;
+    case 'patterns':
+      return <PatternsPage />;
+    case 'reports':
+      return <ReportsPage />;
     case 'privacy':
       return <PrivacyPage />;
     case 'journal':

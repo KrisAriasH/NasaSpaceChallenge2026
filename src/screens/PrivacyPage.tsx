@@ -17,41 +17,41 @@ export function PrivacyPage() {
 
   return (
     <>
-      <PageHeader title="My privacy" />
+      <PageHeader title="Privacy" />
 
       {conversation && (
         <div className="notice">
-          <strong>Your medical officer was told your mental health status has been red for several days.</strong> They were asked to find a
-          private moment to talk. They did not see your answers.
+          <strong>The medical officer was told that mental health status has been red for several days.</strong> A private conversation was
+          recommended. Check-in answers were not shared.
         </div>
       )}
 
       <div className="two-col">
-        <Panel title="What I share">
+        <Panel title="Shared data">
           <div className="toggles">
             <label className="toggle">
               <input id="share-cmo" type="checkbox" checked={sharing.checkInAnswersToCmo} onChange={() => toggle('checkInAnswersToCmo')} />
               <span>
-                Share my check-in answers with {reviewer ? reviewer.name : 'my medical officer'}
+                Share check-in answers with {reviewer ? reviewer.name : 'the medical officer'}
                 <span className="muted small">Mood, stress, energy, connection and symptoms</span>
               </span>
             </label>
             <label className="toggle">
               <input id="share-ground-status" type="checkbox" checked={sharing.mentalStatusToGround} onChange={() => toggle('mentalStatusToGround')} />
               <span>
-                Include my mental health status in reports to Earth
+                Include mental health status in reports to Earth
                 <span className="muted small">Green, yellow or red only</span>
               </span>
             </label>
             <label className="toggle">
               <input id="share-ground-answers" type="checkbox" checked={sharing.checkInAnswersToGround} onChange={() => toggle('checkInAnswersToGround')} />
               <span>
-                Include my check-in answers in reports to Earth
+                Include check-in answers in reports to Earth
                 <span className="muted small">For the flight surgeon or behavioral health team</span>
               </span>
             </label>
           </div>
-          <p className="muted small">You can change this at any time. Your private journal is never shared.</p>
+          <p className="muted small">These settings can change at any time. The private journal is never shared.</p>
         </Panel>
 
         <Panel title="What others see about me">

@@ -1,4 +1,4 @@
-// Core types for Asclepio.
+// Core types for Asclepius.
 
 export type Sex = 'female' | 'male';
 
@@ -75,6 +75,21 @@ export interface CheckIn {
   energy: number; // 1 exhausted – 5 full of energy
   connection: number; // 1 isolated – 5 well connected (contact with crew/family)
   symptoms: string[];
+  contact: ('crew' | 'family' | 'nobody')[];
+  workHours: number;
+  note?: string;
+}
+
+export type ReportCategory = DataCategory | 'patterns';
+
+export interface Report {
+  id: string;
+  memberId: string;
+  day: number;
+  includes: ReportCategory[];
+  findingIds: string[];
+  message?: string;
+  readByCmo: boolean;
 }
 
 /** Psychomotor Vigilance Test result. */

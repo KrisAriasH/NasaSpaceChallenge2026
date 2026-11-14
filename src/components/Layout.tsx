@@ -12,22 +12,23 @@ interface NavItem {
 export function Layout({ children }: { children: ReactNode }) {
   const { viewer, setViewer, page, go, day, setDay, subjectId, environment, environmentId, setEnvironment } = useStore();
 
-  const medical: NavItem[] =
-    viewer.role === 'cmo'
-      ? [
-          { page: 'overview', label: 'Crew overview' },
-          { page: 'alerts', label: 'Alerts' },
-          { page: 'followups', label: 'Follow-ups' },
-          { page: 'validation', label: 'Alert performance' },
-        ]
-      : viewer.role === 'backup'
-        ? [{ page: 'member', label: 'Review the CMO', subject: 'ana' }]
-        : [];
+  const medical: NavItem[] = viewer.role === 'cmo' || viewer.role === 'backup'
+    ? [
+        { page: 'overview', label: 'Crew overview' },
+        { page: 'alerts', label: 'Alerts' },
+        { page: 'reports', label: 'Reports' },
+        { page: 'followups', label: 'Follow-ups' },
+        { page: 'validation', label: 'Alert performance' },
+      ]
+    : [];
   const personal: NavItem[] = [
-    { page: 'mystatus', label: 'My status' },
-    { page: 'checkin', label: 'Tests and check-in' },
-    { page: 'privacy', label: 'My privacy' },
-    { page: 'journal', label: 'Private journal' },
+    { page: 'today', label: 'Today' },
+    { page: 'checkin', label: 'Check-in' },
+    { page: 'tests', label: 'Tests' },
+    { page: 'member', label: 'Trends', subject: viewer.id },
+    { page: 'patterns', label: 'Patterns' },
+    { page: 'journal', label: 'Journal' },
+    { page: 'privacy', label: 'Privacy' },
   ];
 
   const item = (n: NavItem) => {
@@ -50,8 +51,8 @@ export function Layout({ children }: { children: ReactNode }) {
             <path d="M16 5v22M11 9c4 0 6 2 5 4s-5 2-5 4 3 3 5 3 4 1 4 3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
           <div>
-            <strong>Asclepio</strong>
-            <span>Crew health</span>
+            <strong>Asclepius</strong>
+              <span>Mission health</span>
           </div>
         </div>
 
@@ -92,7 +93,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <ul>{medical.map(item)}</ul>
             </>
           )}
-          <p className="side-label">Me</p>
+          <p className="side-label">Astronaut</p>
           <ul>{personal.map(item)}</ul>
           <p className="side-label">Habitat</p>
           <ul>{item({ page: 'environment', label: 'Environment' })}</ul>
