@@ -9,6 +9,7 @@ import { CheckInPage } from './screens/CheckInPage';
 import { MyStatus } from './screens/MyStatus';
 import { PrivacyPage } from './screens/PrivacyPage';
 import { JournalPage } from './screens/JournalPage';
+import { Validation } from './screens/Validation';
 
 function Screen() {
   const { page, subjectId } = useStore();
@@ -31,6 +32,8 @@ function Screen() {
       return <PrivacyPage />;
     case 'journal':
       return <JournalPage />;
+    case 'validation':
+      return <Validation />;
   }
 }
 

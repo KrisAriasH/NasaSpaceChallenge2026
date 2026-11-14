@@ -10,7 +10,9 @@ import { CREW, MISSION_DAYS } from './crew';
  *  - Chen: from day 18 sleep, mood and connection drop and reaction time slows
  *          -> mental health yellow, then red (the privacy story).
  *  - Diego: skips exercise from day 17 -> bone; heart rate rises from day 23 -> cardio.
- *  - Ana (CMO): low fever and congestion on days 25-27 -> immune (Ben reviews her).
+ *  - Ana (CMO): days 21-24 small early changes (pulse, HRV, skin temp, blood, sleep), each
+ *          below its own alert level; fever and congestion on days 25-27. The combined
+ *          early-illness rule should warn before the fever (Ben reviews her).
  *  - Ben: healthy, mild headaches when CO2 is high.
  *  Blood (daily finger-prick):
  *  - Ana: leukocytes up and lymphocytes down around her fever.
@@ -33,6 +35,34 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 const scale = (n: number) => Math.round(clamp(n, 1, 5));
 /** 0 before `start`, then grows by 1 per day up to `cap`. */
 const ramp = (day: number, start: number, cap = 6) => clamp(day - start + 1, 0, cap);
+
+/** Symptom onset of each injected problem: the ground truth used to evaluate the rules. */
+export interface ScenarioEvent {
+  memberId: string; // 'all' for habitat events
+  system: import('../types').SystemKey;
+  start: number; // first day the underlying change begins
+  end?: number; // last day it is present (default: end of mission)
+  symptomDay?: number; // first day the person would notice it, when that applies
+  label: string;
+}
+
+export function scenarioEvents(env = simulateEnvironment()): ScenarioEvent[] {
+  const co2Headache = env.findIndex((e) => e.co2 > 3.2) + 1;
+  const co2Limit = env.findIndex((e) => e.co2 > 3.0) + 1;
+  return [
+    { memberId: 'all', system: 'environment', start: 12, end: 13, label: 'Solar particle event' },
+    { memberId: 'all', system: 'environment', start: co2Limit, label: 'Cabin CO2 above limit' },
+    { memberId: 'ana', system: 'immune', start: 21, end: 28, symptomDay: 25, label: 'Ana: infection (fever day 25)' },
+    { memberId: 'ana', system: 'cardio', start: 21, end: 28, label: 'Ana: pulse and HRV change with the infection' },
+    { memberId: 'chen', system: 'mental', start: 18, label: 'Chen: mental health decline' },
+    { memberId: 'chen', system: 'blood', start: 18, label: 'Chen: cortisol rising' },
+    { memberId: 'chen', system: 'immune', start: co2Headache, label: 'Chen: CO2 headaches' },
+    { memberId: 'ben', system: 'immune', start: co2Headache, label: 'Ben: CO2 headaches' },
+    { memberId: 'diego', system: 'blood', start: 9, label: 'Diego: vitamin D and iron falling' },
+    { memberId: 'diego', system: 'bone', start: 17, label: 'Diego: exercise skipped' },
+    { memberId: 'diego', system: 'cardio', start: 23, label: 'Diego: heart rate rising' },
+  ];
+}
 
 export function simulateEnvironment(days = MISSION_DAYS): Environment[] {
   const rand = rng(7);
@@ -103,14 +133,20 @@ export function simulateMember(memberId: string, days = MISSION_DAYS): MemberDay
       restingHR += 2.2 * k;
       hrv -= 3 * k;
     }
-    if (memberId === 'ana' && day >= 25 && day <= 27) {
-      skinTemp += 1.1;
-      symptoms.push('congestion');
-    }
     if (memberId === 'ana') {
-      const k = day >= 24 && day <= 28 ? 1 : 0;
-      leukocytes += 4 * k;
-      lymphocytes -= 0.9 * k;
+      const pre = day >= 21 && day <= 24 ? day - 20 : 0; // 1..4 before symptoms
+      const sick = day >= 25 && day <= 27;
+      restingHR += 1.3 * pre + (sick ? 6 : 0);
+      hrv -= 2.6 * pre + (sick ? 8 : 0);
+      skinTemp += 0.15 * pre + (sick ? 1.1 : 0);
+      sleepHours -= 0.2 * pre + (sick ? 0.8 : 0);
+      leukocytes += 0.22 * pre;
+      lymphocytes -= 0.12 * pre;
+      if (sick) symptoms.push('congestion');
+      if (day >= 25 && day <= 28) {
+        leukocytes += 4;
+        lymphocytes -= 0.9;
+      }
     }
     if (env[i].co2 > 3.2 && (memberId === 'ben' || memberId === 'chen')) symptoms.push('headache');
 

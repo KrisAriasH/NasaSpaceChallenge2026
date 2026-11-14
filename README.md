@@ -38,6 +38,28 @@ crew members (Chen, Diego). Use the **mission day** slider (bottom left) to move
 | 24–28 | Ana (the CMO) has leukocytes up, lymphocytes down and a fever; Ben reviews her |
 | 25+ | Chen's mental health red 3 days in a row: the CMO is told to have a private conversation, without seeing her answers |
 
+## How the alerts work
+
+Rule-based and explainable, following the SATS approach (no machine learning as the decision maker):
+
+1. **Personal baseline**: mean and SD of each measure over the first 7 days.
+2. **Threshold rules**: reference limits (NASA radiation and CO2 limits; blood reference ranges pending physician review).
+3. **Trend rules**: 3-day average 2 SD (observation) or 3 SD (alert) away from the personal normal.
+4. **Combined early-illness rule**: resting heart rate, HRV, skin temperature, leukocytes, lymphocytes and sleep each 1 SD
+   off in the worse direction; 3 or more at once on 2 consecutive days → "Early signs of possible illness".
+   In the demo it warns Ana on day 23, before any single measure alerts and 2 days before her fever.
+5. **Critical rules** (urgent): solar particle event, very low SpO2, fever with shortness of breath. Never hidden.
+6. **Mental health status**: count of signals; red 3 days in a row → private conversation suggested.
+7. **Forecast**: 7-day linear trend per measure, warns when it will leave the normal range.
+
+Levels: no signal (not the same as healthy), observation, alert, urgent. The CMO can acknowledge an
+alert; it stays quiet unless it gets worse. Each alert shows the rule that fired, the data behind it,
+the ruleset version and its clinical review status.
+
+**Alert performance** (in the app): measured against the problems injected in the simulation, the rules
+detect 11 of 11 events with 2 false-alarm days out of 373 healthy days (99.5%), on average 2.3 days
+after a change starts. These numbers describe the demo scenario only, not real-world accuracy.
+
 ## Code map
 
 | Path | What it does |
@@ -45,6 +67,7 @@ crew members (Chen, Diego). Use the **mission day** slider (bottom left) to move
 | `src/engine/privacy.ts` | **The** privacy policy. Every screen asks `canSee()` before showing data |
 | `src/engine/rules.ts` | Rules per system and all thresholds (`T`) |
 | `src/engine/forecast.ts` | Early warning: 7-day trend vs. personal normal |
+| `src/engine/evaluation.ts` | Detection rate, false alarms and lead time on the simulated scenario |
 | `src/engine/baseline.ts` | Personal normal from the first 7 days |
 | `src/engine/guidance.ts` | Suggested actions per finding, sex-specific notes |
 | `src/data/simulate.ts` | Simulated crew, blood panel and habitat |

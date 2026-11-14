@@ -79,6 +79,10 @@ export interface Finding {
   message: string;
   /** Category of data the message reveals. The UI hides the message if the viewer can't see it. */
   reveals: DataCategory;
+  /** Critical rule: needs an urgent response and is never hidden by acknowledgement. */
+  urgent?: boolean;
+  /** Early warning from a combined rule, before any single measure reaches its alert level. */
+  predictive?: boolean;
 }
 
 export interface SystemStatus {
@@ -86,6 +90,16 @@ export interface SystemStatus {
   status: Status;
   trend: Trend;
   findings: Finding[];
+  urgent: boolean;
+}
+
+/** Level shown to people (SATS-style): 0 no signal, 1 observation, 2 alert, 3 urgent. */
+export type Level = 0 | 1 | 2 | 3;
+
+export interface AlertState {
+  status: 'acknowledged';
+  day: number;
+  severity: Finding['severity']; // severity when acknowledged; a worse one re-opens the alert
 }
 
 // ---- Privacy ------------------------------------------------------------

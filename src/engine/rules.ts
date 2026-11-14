@@ -1,5 +1,5 @@
 import type { Environment, Finding, MemberDay, Status, SystemKey, SystemStatus, Trend } from '../types';
-import { type Baselines, recent, z } from './baseline';
+import { type Baselines, recent, valueOf, z } from './baseline';
 
 /**
  * Rules per system. Thresholds marked PLACEHOLDER must be checked by the science lead.
@@ -35,7 +35,31 @@ export const T = {
   ironLow: 60, // µg/dL
   vitaminDLow: 30, // ng/mL (insufficient)
   vitaminDRed: 20, // ng/mL (deficient)
+  spo2Urgent: 92, // %, PLACEHOLDER critical rule
+  // Combined early-illness rule (PLACEHOLDERS for clinical review)
+  earlyZ: 1, // a signal counts when it is 1 SD from normal in the worse direction
+  earlySignals: 3, // this many signals at once...
+  earlyDays: 2, // ...on this many consecutive days
 };
+
+/** Signals that tend to change days before an infection becomes noticeable. */
+const EARLY_SIGNALS: { key: 'restingHR' | 'hrv' | 'skinTemp' | 'leukocytes' | 'lymphocytes' | 'sleepHours'; label: string; worse: 1 | -1 }[] = [
+  { key: 'restingHR', label: 'resting heart rate up', worse: 1 },
+  { key: 'hrv', label: 'HRV down', worse: -1 },
+  { key: 'skinTemp', label: 'skin temperature up', worse: 1 },
+  { key: 'leukocytes', label: 'leukocytes up', worse: 1 },
+  { key: 'lymphocytes', label: 'lymphocytes down', worse: -1 },
+  { key: 'sleepHours', label: 'sleep down', worse: -1 },
+];
+
+/** Which early signals are present on the last day of `days` (2-day averages vs. personal normal). */
+export function earlySignals(days: MemberDay[], b: Baselines): string[] {
+  if (days.length < 2) return [];
+  return EARLY_SIGNALS.filter((s) => {
+    const v = recent(days, (d) => valueOf(d, s.key), 2);
+    return z(v, b[s.key]) * s.worse >= T.earlyZ;
+  }).map((s) => s.label);
+}
 
 const f0 = (n: number) => n.toFixed(0);
 const f1 = (n: number) => n.toFixed(1);
@@ -89,6 +113,11 @@ export function findingsFor(memberId: string, days: MemberDay[], b: Baselines, e
     add({ id: 'bone-exercise', system: 'bone', severity: sev(ex < T.exerciseRed), reveals: 'vitals',
       message: `Exercise ${f0(ex)} min/day this week; target ${T.exerciseTarget} min.` });
 
+  // Critical rules (urgent level)
+  if (today.vitals.spo2 <= T.spo2Urgent)
+    add({ id: 'cardio-spo2', system: 'cardio', severity: 'red', urgent: true, reveals: 'vitals',
+      message: `Blood oxygen ${today.vitals.spo2}% today.` });
+
   // Immune
   const tempUp = today.vitals.skinTemp - b.skinTemp.mean;
   if (tempUp >= T.skinTempYellow)
@@ -105,6 +134,18 @@ export function findingsFor(memberId: string, days: MemberDay[], b: Baselines, e
   if (bl.eosinophils > T.eosinophilsHigh || bl.basophils > T.basophilsHigh)
     add({ id: 'immune-eos-baso', system: 'immune', severity: 'yellow', reveals: 'blood',
       message: `Eosinophils ${bl.eosinophils.toFixed(2)} / basophils ${bl.basophils.toFixed(2)} ×10⁹/L above reference (possible allergic reaction).` });
+  // Combined early-illness rule: several small changes together, kept for 2 days in a row.
+  const early = earlySignals(days, b);
+  const persisted = Array.from({ length: T.earlyDays }, (_, i) => days.slice(0, days.length - i)).every(
+    (d) => earlySignals(d, b).length >= T.earlySignals,
+  );
+  if (persisted)
+    add({ id: 'risk-illness', system: 'immune', severity: 'yellow', predictive: true, reveals: 'vitals',
+      message: `Early signs of possible illness for ${T.earlyDays} days: ${early.join(', ')}. No single measure has reached its alert level yet.` });
+  if (tempUp >= T.skinTempRed && today.checkIn.symptoms.includes('shortness of breath'))
+    add({ id: 'immune-critical', system: 'immune', severity: 'red', urgent: true, reveals: 'vitals',
+      message: `Fever with shortness of breath reported today.` });
+
   const symptoms = [...new Set(days.slice(-3).flatMap((d) => d.checkIn.symptoms))];
   if (symptoms.length > 0)
     add({ id: 'immune-symptoms', system: 'immune', severity: 'yellow', reveals: 'checkInAnswers',
@@ -138,7 +179,8 @@ export function findingsFor(memberId: string, days: MemberDay[], b: Baselines, e
 
   // Environment (same habitat for everyone)
   if (envToday.radiationMSv >= T.radiationYellow)
-    add({ id: 'env-radiation', system: 'environment', severity: sev(envToday.radiationMSv >= T.radiationRed), reveals: 'environment',
+    add({ id: 'env-radiation', system: 'environment', severity: sev(envToday.radiationMSv >= T.radiationRed),
+      urgent: envToday.radiationMSv >= T.radiationRed, reveals: 'environment',
       message: `Radiation ${f1(envToday.radiationMSv)} mSv today, ${f0(envToday.radiationMSv / T.radiationBackground)}× the usual dose. Possible solar particle event.` });
   if (envToday.co2 > T.co2Yellow)
     add({ id: 'env-co2', system: 'environment', severity: sev(envToday.co2 > T.co2Red), reveals: 'environment',
@@ -160,7 +202,7 @@ export function assessMember(memberId: string, days: MemberDay[], b: Baselines, 
     const a = now.filter((f) => f.system === system);
     const p = before.filter((f) => f.system === system);
     const trend: Trend = load(a) < load(p) ? 'up' : load(a) > load(p) ? 'down' : 'flat';
-    return { system, status: worst(a), trend, findings: a };
+    return { system, status: worst(a), trend, findings: a, urgent: a.some((f) => f.urgent) };
   });
 
   // Safety rule: mental health red several days in a row -> the medical officer is told
@@ -191,6 +233,10 @@ export function consecutiveMentalRedDays(memberId: string, days: MemberDay[], b:
   }
   return count;
 }
+
+/** SATS-style level of a set of findings. Level 0 means no signal with the data available, not "healthy". */
+export const levelOf = (fs: Finding[]): import('../types').Level =>
+  fs.some((f) => f.urgent) ? 3 : fs.some((f) => f.severity === 'red') ? 2 : fs.length > 0 ? 1 : 0;
 
 export const overallStatus = (systems: SystemStatus[]): Status =>
   systems.some((s) => s.status === 'red') ? 'red' : systems.some((s) => s.status === 'yellow') ? 'yellow' : 'green';

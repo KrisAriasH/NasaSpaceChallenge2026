@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useState } from 'react';
 import type { Finding } from '../types';
-import { GUIDANCE, SYSTEM_LABEL } from '../engine/guidance';
+import { GUIDANCE, RULESET_VERSION, RULE_REVIEW, SYSTEM_LABEL } from '../engine/guidance';
 import { memberById } from '../data/crew';
 import { useStore } from '../store';
 import { Private } from './ui';
@@ -42,9 +42,29 @@ export function PrivateSignals({ findings, showName }: { findings: Finding[]; sh
 }
 
 /** Splits findings into readable cards and grouped private cards, in severity order. */
-export function FindingList({ findings, showName }: { findings: Finding[]; showName?: boolean }) {
-  const { can } = useStore();
-  const sorted = [...findings].sort((a, b) => (a.severity === b.severity ? 0 : a.severity === 'red' ? -1 : 1));
+export function FindingList({ findings, showName, groups }: { findings: Finding[]; showName?: boolean; groups?: boolean }) {
+  const { can, isAcknowledged } = useStore();
+  if (groups) {
+    const urgent = findings.filter((f) => f.urgent);
+    const fresh = findings.filter((f) => !f.urgent && !isAcknowledged(f));
+    const acked = findings.filter((f) => !f.urgent && isAcknowledged(f));
+    return (
+      <div className="stack">
+        {urgent.length > 0 && <h2 className="group-title urgent">Urgent</h2>}
+        {urgent.length > 0 && <FindingList findings={urgent} showName={showName} />}
+        <h2 className="group-title">New ({fresh.length})</h2>
+        {fresh.length > 0 ? <FindingList findings={fresh} showName={showName} /> : <p className="muted">Nothing new.</p>}
+        {acked.length > 0 && (
+          <details className="acked-group">
+            <summary>Acknowledged ({acked.length}): shown again only if they get worse</summary>
+            <FindingList findings={acked} showName={showName} />
+          </details>
+        )}
+      </div>
+    );
+  }
+  const rank = (f: Finding) => (f.urgent ? 0 : f.severity === 'red' ? 1 : f.predictive ? 2 : 3);
+  const sorted = [...findings].sort((a, b) => rank(a) - rank(b));
   const items: React.ReactNode[] = [];
   const grouped = new Map<string, Finding[]>();
   for (const f of sorted) {
@@ -78,7 +98,9 @@ function PrivateSlot(_: { id: string }) {
 
 /** One readable finding, with a way to assign a follow-up. */
 export function FindingCard({ finding, showName }: { finding: Finding; showName?: boolean }) {
-  const { can, addFollowUp, data, go } = useStore();
+  const { can, addFollowUp, data, go, isAcknowledged, acknowledge, unacknowledge, viewer } = useStore();
+  const acked = isAcknowledged(finding);
+  const canAck = viewer.id !== finding.memberId && !finding.urgent;
   const visible = can(finding.memberId, finding.reveals);
   const g = GUIDANCE[finding.id];
   const [choice, setChoice] = useState(g.actions[0]);
@@ -86,16 +108,27 @@ export function FindingCard({ finding, showName }: { finding: Finding; showName?
   const member = memberById(finding.memberId);
 
   return (
-    <article className={`finding sev-${finding.severity}`}>
+    <article className={`finding sev-${finding.urgent ? 'urgent' : finding.severity}${acked ? ' acked' : ''}`}>
       <div className="finding-head">
         <div>
-          {showName && (
-            <button className="link" onClick={() => go('member', member.id)}>
-              {member.name}
-            </button>
-          )}
+          {showName &&
+            (finding.system === 'environment' ? (
+              <strong>Whole crew</strong>
+            ) : (
+              <button className="link" onClick={() => go('member', member.id)}>
+                {member.name}
+              </button>
+            ))}
           <span className="finding-system">{SYSTEM_LABEL[finding.system]}</span>
+          {finding.urgent && <span className="badge badge-urgent">Urgent</span>}
+          {finding.predictive && <span className="badge badge-predict">Early warning</span>}
         </div>
+        {canAck &&
+          (acked ? (
+            <button className="btn-ghost small" onClick={() => unacknowledge(finding)}>Mark as new</button>
+          ) : (
+            <button className="btn-ghost small" onClick={() => acknowledge(finding)}>Acknowledge</button>
+          ))}
       </div>
       {visible ? (
         <>
@@ -118,6 +151,9 @@ export function FindingCard({ finding, showName }: { finding: Finding; showName?
               {assigned ? 'Follow-up open' : 'Assign follow-up'}
             </button>
           </div>
+          <p className="rule-line">
+            Rule <code>{finding.id}</code> · ruleset {RULESET_VERSION} · {RULE_REVIEW}
+          </p>
         </>
       ) : null}
     </article>

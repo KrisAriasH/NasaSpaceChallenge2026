@@ -23,7 +23,7 @@ export function MyStatus() {
           <div key={s.system} className={`system system-${s.status}`}>
             <span className="system-name">{SYSTEM_LABEL[s.system]}</span>
             <span className="system-status">
-              <StatusPill status={s.status} /> <TrendArrow trend={s.trend} />
+              <StatusPill status={s.status} urgent={s.urgent} /> <TrendArrow trend={s.trend} />
             </span>
           </div>
         ))}

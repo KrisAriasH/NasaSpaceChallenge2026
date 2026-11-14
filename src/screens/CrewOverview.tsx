@@ -17,12 +17,12 @@ export function CrewOverview() {
     <>
       <PageHeader eyebrow={`Mission day ${day}`} title="Crew overview" />
       <div className="kpis">
-        <div className="kpi kpi-red"><span>{counts.red}</span>need action</div>
-        <div className="kpi kpi-yellow"><span>{counts.yellow}</span>to watch</div>
-        <div className="kpi kpi-green"><span>{counts.green}</span>nominal</div>
+        <div className="kpi kpi-red"><span>{counts.red}</span>with an alert</div>
+        <div className="kpi kpi-yellow"><span>{counts.yellow}</span>under observation</div>
+        <div className="kpi kpi-green"><span>{counts.green}</span>no signal</div>
         <div className="kpi"><span>{open}</span>open follow-ups</div>
       </div>
-      <Panel title="Status by system" aside={<span className="muted small">↗ improving · → stable · ↘ worsening (vs. 3 days ago)</span>}>
+      <Panel title="Status by system" aside={<span className="muted small">↗ improving · → stable · ↘ worsening (vs. 3 days ago) · “No signal” means nothing detected with the data available, not a diagnosis of health</span>}>
         <div className="table-wrap">
           <table className="matrix">
             <thead>
@@ -42,7 +42,7 @@ export function CrewOverview() {
                   </th>
                   {systems.map((s) => (
                     <td key={s.system}>
-                      <StatusPill status={s.status} small /> <TrendArrow trend={s.trend} />
+                      <StatusPill status={s.status} urgent={s.urgent} small /> <TrendArrow trend={s.trend} />
                     </td>
                   ))}
                 </tr>

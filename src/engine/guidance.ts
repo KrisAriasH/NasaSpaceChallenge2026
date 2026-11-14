@@ -37,6 +37,21 @@ export const GUIDANCE: Record<string, Guidance> = {
     actions: ['Re-check in 2 hours', 'Rest and hydrate', 'Limit close contact with the crew'],
     source: 'TODO',
   },
+  'risk-illness': {
+    title: 'Early signs of possible illness',
+    actions: ['Rest and hydrate today', 'Limit close contact with the crew', 'Repeat the blood panel and temperature tomorrow', 'Ask about symptoms at the next check-in'],
+    source: 'TODO: wearable early-detection studies (resting HR, HRV, skin temperature before symptom onset)',
+  },
+  'immune-critical': {
+    title: 'Fever with shortness of breath',
+    actions: ['Assess now following the onboard medical checklist', 'Contact the flight surgeon at the first opportunity'],
+    source: 'TODO: consulting physician',
+  },
+  'cardio-spo2': {
+    title: 'Low blood oxygen',
+    actions: ['Re-measure immediately', 'Check cabin oxygen and CO2', 'Follow the onboard medical checklist'],
+    source: 'TODO: consulting physician',
+  },
   'immune-symptoms': {
     title: 'Symptoms reported',
     actions: ['Keep logging symptoms daily', 'Prioritize sleep'],
@@ -118,6 +133,10 @@ export const GUIDANCE: Record<string, Guidance> = {
     source: 'NASA OCHMO Carbon Dioxide technical brief',
   },
 };
+
+/** Rule metadata shown with every alert, so the medical officer knows which rule fired and its review status. */
+export const RULESET_VERSION = 'v1';
+export const RULE_REVIEW = 'pending review by the team’s consulting physician';
 
 export const SYSTEM_LABEL: Record<SystemKey, string> = {
   cardio: 'Heart & rhythm',

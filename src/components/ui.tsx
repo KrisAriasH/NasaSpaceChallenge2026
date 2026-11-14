@@ -2,13 +2,14 @@ import type { ReactNode } from 'react';
 import { CartesianGrid, Line, LineChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { Status, Trend } from '../types';
 
-const STATUS_WORD: Record<Status, string> = { green: 'Nominal', yellow: 'Watch', red: 'Act' };
+/** SATS-style levels: 0 no signal, 1 observation, 2 alert, 3 urgent. "No signal" does not mean healthy. */
+const STATUS_WORD: Record<Status, string> = { green: 'No signal', yellow: 'Observation', red: 'Alert' };
 
-export function StatusPill({ status, small }: { status: Status; small?: boolean }) {
+export function StatusPill({ status, small, urgent }: { status: Status; small?: boolean; urgent?: boolean }) {
   return (
-    <span className={`pill pill-${status}${small ? ' pill-sm' : ''}`}>
+    <span className={`pill pill-${urgent ? 'urgent' : status}${small ? ' pill-sm' : ''}`}>
       <span className="pill-dot" aria-hidden />
-      {STATUS_WORD[status]}
+      {urgent ? 'Urgent' : STATUS_WORD[status]}
     </span>
   );
 }

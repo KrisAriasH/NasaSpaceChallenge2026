@@ -7,6 +7,7 @@ import { GUIDANCE } from './guidance';
 import { DEFAULT_SHARING, canGroundSee, canSee } from './privacy';
 import { assessMember } from './rules';
 import { forecasts } from './forecast';
+import { evaluate } from './evaluation';
 
 const env = simulateEnvironment();
 const statusOn = (id: string, day: number) => {
@@ -95,6 +96,25 @@ describe('demo story', () => {
     const days = simulateMember('diego');
     const f = forecasts(days.slice(0, 13), computeBaselines(days));
     expect(f.map((x) => x.key)).toContain('vitaminD');
+  });
+
+  it('warns about Ana’s infection with the combined rule before any single alert and before the fever', () => {
+    const day23 = Object.values(statusOn('ana', 23)).flatMap((s) => s.findings);
+    expect(day23.map((f) => f.id)).toContain('risk-illness');
+    expect(day23.filter((f) => f.system !== 'environment').map((f) => f.id)).toEqual(['risk-illness']);
+  });
+
+  it('marks the solar particle event as urgent', () => {
+    expect(statusOn('ben', 12).environment.urgent).toBe(true);
+    expect(statusOn('ben', 13).environment.urgent).toBe(false);
+  });
+
+  it('detects every injected event with few false alarms (evaluation)', () => {
+    const e = evaluate();
+    expect(e.sensitivity).toBe(1);
+    expect(e.specificity).toBeGreaterThanOrEqual(0.98);
+    const ana = e.events.find((r) => r.event.label.startsWith('Ana: infection'))!;
+    expect(ana.leadBeforeSymptoms).toBeGreaterThanOrEqual(2);
   });
 
   it('has guidance for every finding the rules can produce', () => {

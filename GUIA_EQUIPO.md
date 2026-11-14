@@ -18,6 +18,8 @@ contar bien la historia. No agreguen funciones grandes antes de cerrar esto.
 - [ ] Llenar los `source: 'TODO'` de `src/engine/guidance.ts`.
 - [ ] Definir con la doctora qué cuenta como verde, amarillo y rojo en salud mental.
 - [ ] Decidir si el cortisol debe tratarse como dato mental (privado) o físico (lo ve el CMO). Hoy lo ve el CMO.
+- [ ] Revisar la regla combinada de enfermedad temprana (`EARLY_SIGNALS` y `earlyZ`, `earlySignals`, `earlyDays` en `rules.ts`) y buscar estudios con relojes inteligentes que la respalden.
+- [ ] Aprobar las reglas críticas (urgente) y cambiar `RULE_REVIEW` en `guidance.ts` cuando la doctora las revise.
 - [ ] Verificar que existe un análisis de sangre por pinchazo viable a bordo y citarlo; si no, explicarlo como supuesto.
 
 ## Lógica y datos
@@ -29,6 +31,8 @@ contar bien la historia. No agreguen funciones grandes antes de cerrar esto.
 
 Para agregar una regla: en `rules.ts` calcular el valor, llamar `add({...})` con un `id` nuevo y
 su `reveals` (qué categoría de dato revela), y agregar el mismo `id` en `GUIDANCE`. Si falta, `npm test` falla.
+
+Siguientes ideas del documento SATS (no hechas aún): calidad de datos (sin check-in, sin sincronizar, valores imposibles) y síntomas con severidad de 0 a 3.
 
 ## Frontend
 

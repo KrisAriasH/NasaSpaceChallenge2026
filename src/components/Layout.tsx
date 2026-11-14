@@ -17,6 +17,7 @@ export function Layout({ children }: { children: ReactNode }) {
           { page: 'overview', label: 'Crew overview' },
           { page: 'alerts', label: 'Alerts' },
           { page: 'followups', label: 'Follow-ups' },
+          { page: 'validation', label: 'Alert performance' },
         ]
       : viewer.role === 'backup'
         ? [{ page: 'member', label: 'Review the CMO', subject: 'ana' }]

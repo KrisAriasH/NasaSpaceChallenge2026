@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type {
   AccessLogEntry,
+  AlertState,
+  Finding,
   CheckIn,
   CrewMember,
   DataCategory,
@@ -31,7 +33,8 @@ export type Page =
   | 'checkin'
   | 'mystatus'
   | 'privacy'
-  | 'journal';
+  | 'journal'
+  | 'validation';
 
 interface Persisted {
   checkIns: Record<string, Record<number, CheckIn>>; // memberId -> day -> manual check-in
@@ -40,6 +43,7 @@ interface Persisted {
   followUps: FollowUp[];
   accessLog: AccessLogEntry[];
   journal: Record<string, { day: number; text: string }[]>;
+  alertStates: Record<string, AlertState>; // key: memberId:findingId
 }
 
 const STORAGE_KEY = 'asclepio-v1';
@@ -54,6 +58,7 @@ const INITIAL: Persisted = {
   followUps: [],
   accessLog: [],
   journal: {},
+  alertStates: {},
 };
 
 function load(): Persisted {
@@ -90,6 +95,10 @@ interface Store {
   setFollowUpStatus: (id: string, status: FollowUp['status']) => void;
   addJournal: (memberId: string, text: string) => void;
   logAccess: (subjectId: string, categories: DataCategory[]) => void;
+  /** Acknowledged alerts stay quiet unless they get worse; urgent ones are never quieted. */
+  isAcknowledged: (f: Finding) => boolean;
+  acknowledge: (f: Finding) => void;
+  unacknowledge: (f: Finding) => void;
   reset: () => void;
 }
 
@@ -164,6 +173,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setData((p) => {
           const next = recordAccess(p.accessLog, { viewerId, subjectId: sid, day, categories });
           return next === p.accessLog ? p : { ...p, accessLog: next };
+        }),
+      isAcknowledged: (f) => {
+        const st = data.alertStates[`${f.memberId}:${f.id}`];
+        if (!st || f.urgent) return false;
+        return !(st.severity === 'yellow' && f.severity === 'red');
+      },
+      acknowledge: (f) =>
+        setData((p) => ({
+          ...p,
+          alertStates: { ...p.alertStates, [`${f.memberId}:${f.id}`]: { status: 'acknowledged', day, severity: f.severity } },
+        })),
+      unacknowledge: (f) =>
+        setData((p) => {
+          const next = { ...p.alertStates };
+          delete next[`${f.memberId}:${f.id}`];
+          return { ...p, alertStates: next };
         }),
       reset: () => setData(INITIAL),
     };
