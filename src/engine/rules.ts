@@ -28,6 +28,12 @@ export const T = {
   careerLimit: 600, // mSv, NASA-STD-3001
   co2Yellow: 3.0, // mmHg, NASA-STD-3001
   co2Red: 4.5, // mmHg, NASA lists fatigue, nausea, poor sleep above this
+  bpSysLow: 90,
+  bpDiaLow: 60,
+  bpSysHigh: 130,
+  bpSysHighTendency: 135,
+  bpDiaHigh: 100,
+  // Blood pressure thresholds from the consulting physician.
   // Blood panel: common adult reference limits, PLACEHOLDERS to confirm with the consulting physician.
   leukocytesHigh: 11, // ×10^9/L
   lymphocytesLow: 1.0, // ×10^9/L
@@ -99,10 +105,18 @@ export function findingsFor(memberId: string, days: MemberDay[], b: Baselines, e
   if (hrvZ <= -T.zYellow)
     add({ id: 'cardio-hrv', system: 'cardio', severity: sev(hrvZ <= -T.zRed), reveals: 'vitals',
       message: `Heart-rate variability ${f0(hrv)} ms, below a normal of ${f0(b.hrv.mean)} ms.` });
-  const bp = recent(days, (d) => d.vitals.systolicBP);
-  if (z(bp, b.systolicBP) >= T.zYellow)
+  const systolicBP = recent(days, (d) => d.vitals.systolicBP);
+  const diastolicBP = recent(days, (d) => d.vitals.diastolicBP);
+  const systolicHigh = PROFILES[memberId].highBPTendency ? T.bpSysHighTendency : T.bpSysHigh;
+  if (systolicBP < T.bpSysLow || diastolicBP < T.bpDiaLow)
+    add({ id: 'cardio-bp-low', system: 'cardio', severity: 'red', reveals: 'vitals',
+      message: `Blood pressure ${f0(systolicBP)}/${f0(diastolicBP)} mmHg (3-day average), below ${T.bpSysLow}/${T.bpDiaLow} mmHg.` });
+  else if (systolicBP > systolicHigh || diastolicBP > T.bpDiaHigh)
+    add({ id: 'cardio-bp', system: 'cardio', severity: 'red', reveals: 'vitals',
+      message: `Blood pressure ${f0(systolicBP)}/${f0(diastolicBP)} mmHg (3-day average), above the clinical threshold.` });
+  else if (z(systolicBP, b.systolicBP) >= T.zYellow || z(diastolicBP, b.diastolicBP) >= T.zYellow)
     add({ id: 'cardio-bp', system: 'cardio', severity: 'yellow', reveals: 'vitals',
-      message: `Systolic blood pressure ${f0(bp)} mmHg, higher than normal.` });
+      message: `Blood pressure ${f0(systolicBP)}/${f0(diastolicBP)} mmHg (3-day average), above the personal normal. Ideal: 120/80 mmHg.` });
 
   // Blood panel (daily finger-prick). Alerts when values fall below the person's own standard
   // or outside the reference range, as requested by the consulting physician.

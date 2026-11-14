@@ -22,6 +22,7 @@ export const FORECAST_METRICS: { key: BaselineKey; label: string; unit: string; 
   { key: 'restingHR', label: 'Resting heart rate', unit: 'bpm', worse: 'up' },
   { key: 'hrv', label: 'Heart-rate variability', unit: 'ms', worse: 'down' },
   { key: 'systolicBP', label: 'Blood pressure', unit: 'mmHg', worse: 'up' },
+  { key: 'diastolicBP', label: 'Diastolic blood pressure', unit: 'mmHg', worse: 'up' },
   { key: 'sleepHours', label: 'Sleep', unit: 'h', worse: 'down' },
   { key: 'meanMs', label: 'Reaction time', unit: 'ms', worse: 'up' },
   { key: 'leukocytes', label: 'Leukocytes', unit: '×10⁹/L', worse: 'up' },

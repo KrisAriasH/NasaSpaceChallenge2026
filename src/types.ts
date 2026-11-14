@@ -17,6 +17,7 @@ export interface Vitals {
   restingHR: number; // bpm
   hrv: number; // ms (RMSSD)
   systolicBP: number; // mmHg
+  diastolicBP: number; // mmHg
   spo2: number; // %
   skinTemp: number; // °C
   sleepHours: number;
@@ -32,6 +33,7 @@ export interface MedicalProfile {
   conditions: string[];
   medications: string[];
   previousFlights: number;
+  highBPTendency: boolean;
   priorCareerDoseMSv: number; // radiation from earlier missions
   returnDay: number; // mission day of the planned return to Earth
 }

@@ -10,10 +10,10 @@ export const CREW: CrewMember[] = [
 
 /** Fictional profiles for the demo. */
 export const PROFILES: Record<string, MedicalProfile> = {
-  ana: { age: 41, bloodType: 'O+', allergies: [], conditions: [], medications: ['Vitamin D supplement'], previousFlights: 1, priorCareerDoseMSv: 120, returnDay: 30 },
-  ben: { age: 38, bloodType: 'A+', allergies: ['Penicillin'], conditions: ['Mild seasonal asthma (controlled)'], medications: ['Vitamin D supplement'], previousFlights: 0, priorCareerDoseMSv: 40, returnDay: 30 },
-  chen: { age: 35, bloodType: 'B+', allergies: [], conditions: [], medications: ['Vitamin D supplement'], previousFlights: 0, priorCareerDoseMSv: 0, returnDay: 30 },
-  diego: { age: 47, bloodType: 'A−', allergies: ['Latex'], conditions: [], medications: ['Vitamin D supplement'], previousFlights: 2, priorCareerDoseMSv: 260, returnDay: 30 },
+  ana: { age: 41, bloodType: 'O+', allergies: [], conditions: [], medications: ['Vitamin D supplement'], previousFlights: 1, highBPTendency: false, priorCareerDoseMSv: 120, returnDay: 30 },
+  ben: { age: 38, bloodType: 'A+', allergies: ['Penicillin'], conditions: ['Mild seasonal asthma (controlled)'], medications: ['Vitamin D supplement'], previousFlights: 0, highBPTendency: false, priorCareerDoseMSv: 40, returnDay: 30 },
+  chen: { age: 35, bloodType: 'B+', allergies: [], conditions: [], medications: ['Vitamin D supplement'], previousFlights: 0, highBPTendency: false, priorCareerDoseMSv: 0, returnDay: 30 },
+  diego: { age: 47, bloodType: 'A−', allergies: ['Latex'], conditions: [], medications: ['Vitamin D supplement'], previousFlights: 2, highBPTendency: true, priorCareerDoseMSv: 260, returnDay: 30 },
 };
 
 export const MISSION_DAYS = 30;

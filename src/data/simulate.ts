@@ -96,6 +96,7 @@ export function simulateMember(memberId: string, days = MISSION_DAYS): MemberDay
   const female = CREW[index].sex === 'female';
   const env = simulateEnvironment(days);
   const doseRand = rng(500 + index * 13); // separate stream so adding the dosimeter leaves other data unchanged
+  const bpRand = rng(700 + index * 17);
 
   return Array.from({ length: days }, (_, i) => {
     const day = i + 1;
@@ -103,6 +104,7 @@ export function simulateMember(memberId: string, days = MISSION_DAYS): MemberDay
     let restingHR = (female ? 64 : 60) + index + n(2.5);
     let hrv = 55 - index * 2 + n(5);
     const systolicBP = (female ? 112 : 120) + n(4);
+    const diastolicBP = (female ? 72 : 78) + (bpRand() - 0.5) * 6;
     const spo2 = 98 + n(0.8);
     let skinTemp = 33.5 + n(0.3);
     let sleepHours = 7.1 + n(0.4);
@@ -179,6 +181,7 @@ export function simulateMember(memberId: string, days = MISSION_DAYS): MemberDay
         restingHR: Math.round(restingHR),
         hrv: Math.round(hrv),
         systolicBP: Math.round(systolicBP),
+        diastolicBP: Math.round(diastolicBP),
         spo2: Math.round(clamp(spo2, 90, 100)),
         skinTemp: r1(skinTemp),
         sleepHours: r1(clamp(sleepHours, 3, 10)),

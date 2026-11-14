@@ -23,6 +23,7 @@ const METRICS: Metric[] = [
   { key: 'restingHR', label: 'Resting heart rate', unit: 'bpm', category: 'vitals', get: (d) => d.vitals.restingHR, baseline: 'restingHR' },
   { key: 'hrv', label: 'Heart-rate variability', unit: 'ms', category: 'vitals', get: (d) => d.vitals.hrv, baseline: 'hrv' },
   { key: 'systolicBP', label: 'Systolic blood pressure', unit: 'mmHg', category: 'vitals', get: (d) => d.vitals.systolicBP, baseline: 'systolicBP' },
+  { key: 'diastolicBP', label: 'Diastolic blood pressure', unit: 'mmHg', category: 'vitals', get: (d) => d.vitals.diastolicBP, baseline: 'diastolicBP' },
   { key: 'skinTemp', label: 'Skin temperature', unit: '°C', category: 'vitals', get: (d) => d.vitals.skinTemp, baseline: 'skinTemp' },
   { key: 'sleepHours', label: 'Sleep', unit: 'h', category: 'vitals', get: (d) => d.vitals.sleepHours, baseline: 'sleepHours' },
   { key: 'personalDose', label: 'Personal radiation dose', unit: 'mSv', category: 'vitals', get: (d) => d.vitals.personalDoseMSv },

@@ -3,7 +3,7 @@ import { BASELINE_DAYS } from '../data/crew';
 
 /** Metrics that are judged against each person's own normal. */
 export type BaselineKey =
-  | 'restingHR' | 'hrv' | 'systolicBP' | 'skinTemp' | 'sleepHours' | 'meanMs'
+  | 'restingHR' | 'hrv' | 'systolicBP' | 'diastolicBP' | 'skinTemp' | 'sleepHours' | 'meanMs'
   | 'leukocytes' | 'lymphocytes' | 'iron' | 'vitaminD' | 'cortisol';
 
 export interface Baseline {
@@ -17,6 +17,7 @@ const MIN_SD: Record<BaselineKey, number> = {
   restingHR: 2,
   hrv: 4,
   systolicBP: 3,
+  diastolicBP: 2,
   skinTemp: 0.2,
   sleepHours: 0.3,
   meanMs: 15,

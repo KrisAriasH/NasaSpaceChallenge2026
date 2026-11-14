@@ -16,6 +16,15 @@ const statusOn = (id: string, day: number) => {
   return Object.fromEntries(s.map((x) => [x.system, x])) as Record<SystemKey, (typeof s)[number]>;
 };
 
+const daysWithBloodPressure = (id: string, systolicBP: number, diastolicBP: number) => {
+  const days = simulateMember(id).map((day) => ({ ...day, vitals: { ...day.vitals } }));
+  for (const day of days.slice(-3)) {
+    day.vitals.systolicBP = systolicBP;
+    day.vitals.diastolicBP = diastolicBP;
+  }
+  return days;
+};
+
 const ana = memberById('ana'); // CMO
 const ben = memberById('ben'); // backup
 const chen = memberById('chen');
@@ -74,6 +83,33 @@ describe('demo story', () => {
     const dose = (id: string) => simulateMember(id)[11].vitals.personalDoseMSv;
     expect(dose('diego')).toBeGreaterThan(2 * dose('ana'));
     expect(statusOn('diego', 11).environment.status).toBe('green');
+  });
+
+  it('simulates diastolic blood pressure within the expected range', () => {
+    for (const member of CREW) {
+      for (const day of simulateMember(member.id)) {
+        expect(day.vitals.diastolicBP).toBeGreaterThanOrEqual(60);
+        expect(day.vitals.diastolicBP).toBeLessThanOrEqual(100);
+      }
+    }
+  });
+
+  it('raises a red alert for a 3-day average below 90/60 mmHg', () => {
+    const days = daysWithBloodPressure('ana', 85, 55);
+    const cardio = assessMember('ana', days, computeBaselines(days), env).find((s) => s.system === 'cardio')!;
+    const finding = cardio.findings.find((f) => f.id === 'cardio-bp-low')!;
+    expect(finding.severity).toBe('red');
+    expect(finding.message).toContain('85/55 mmHg');
+  });
+
+  it('uses the high blood pressure tendency when applying the red threshold', () => {
+    const anaDays = daysWithBloodPressure('ana', 132, 80);
+    const anaCardio = assessMember('ana', anaDays, computeBaselines(anaDays), env).find((s) => s.system === 'cardio')!;
+    expect(anaCardio.findings.find((f) => f.id === 'cardio-bp')?.severity).toBe('red');
+
+    const diegoDays = daysWithBloodPressure('diego', 132, 80);
+    const diegoCardio = assessMember('diego', diegoDays, computeBaselines(diegoDays), env).find((s) => s.system === 'cardio')!;
+    expect(diegoCardio.findings.find((f) => f.id === 'cardio-bp')?.severity).not.toBe('red');
   });
 
   it('reports symptoms without adding sex-specific context', () => {

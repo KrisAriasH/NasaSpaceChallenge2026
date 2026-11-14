@@ -23,9 +23,14 @@ export const GUIDANCE: Record<string, Guidance> = {
     source: 'TODO',
   },
   'cardio-bp': {
-    title: 'Higher blood pressure',
+    title: 'Blood pressure high',
     actions: ['Re-measure twice, 1 minute apart', 'Note caffeine and sodium intake'],
     source: 'TODO',
+  },
+  'cardio-bp-low': {
+    title: 'Blood pressure low',
+    actions: ['Re-measure seated and standing', 'Check fluid intake and dizziness', 'Avoid sudden position changes'],
+    source: 'Consulting physician: keep above 90/60 mmHg',
   },
   'bone-exercise': {
     title: 'Exercise below target',
