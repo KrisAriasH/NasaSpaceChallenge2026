@@ -24,7 +24,7 @@ npm test         # privacy policy and demo-story tests
 npm run build
 ```
 
-Use **Viewing as** (top left) to switch between the CMO (Ana), the backup medical officer (Ben) and
+Use **Viewing as** (top left-) to switch between the CMO (Ana), the backup medical officer (Ben) and
 crew members (Chen, Diego). Use the **mission day** slider (bottom left) to move through the story.
 
 ## Demo story
