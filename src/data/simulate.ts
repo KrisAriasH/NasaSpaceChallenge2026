@@ -15,7 +15,7 @@ import { CREW, MISSION_DAYS } from './crew';
  *          early-illness rule should warn before the fever (Ben reviews her).
  *  - Ben: healthy, mild headaches when CO2 is high.
  *  Blood (daily finger-prick):
- *  - Ana: leukocytes up and lymphocytes down around her fever.
+ *  - Ana: leukocytes and lymphocytes up around her fever.
  *  - Diego: vitamin D drifts down (bone risk) and iron falls slowly.
  *  - Chen: morning cortisol rises with stress.
  *  Radiation: each person's dosimeter reads the habitat dose times a factor; during the solar
@@ -151,11 +151,11 @@ export function simulateMember(memberId: string, days = MISSION_DAYS): MemberDay
       skinTemp += 0.15 * pre + (sick ? 1.1 : 0);
       sleepHours -= 0.2 * pre + (sick ? 0.8 : 0);
       leukocytes += 0.22 * pre;
-      lymphocytes -= 0.12 * pre;
+      lymphocytes += 0.12 * pre;
       if (sick) symptoms.push('congestion');
       if (day >= 25 && day <= 28) {
         leukocytes += 4;
-        lymphocytes -= 0.9;
+        lymphocytes += 1.0;
       }
     }
     if (env[i].co2 > 3.2 && (memberId === 'ben' || memberId === 'chen')) symptoms.push('headache');

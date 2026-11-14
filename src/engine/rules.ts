@@ -37,6 +37,7 @@ export const T = {
   // Blood panel: common adult reference limits, PLACEHOLDERS to confirm with the consulting physician.
   leukocytesHigh: 11, // ×10^9/L
   lymphocytesLow: 1.0, // ×10^9/L
+  lymphocytesHigh: 4.0, // ×10^9/L, PLACEHOLDER: confirm with consulting physician
   eosinophilsHigh: 0.5, // ×10^9/L
   basophilsHigh: 0.2, // ×10^9/L
   ironLow: 60, // µg/dL
@@ -59,7 +60,7 @@ const EARLY_SIGNALS: { key: 'restingHR' | 'hrv' | 'skinTemp' | 'leukocytes' | 'l
   { key: 'hrv', label: 'HRV down', worse: -1 },
   { key: 'skinTemp', label: 'skin temperature up', worse: 1 },
   { key: 'leukocytes', label: 'leukocytes up', worse: 1 },
-  { key: 'lymphocytes', label: 'lymphocytes down', worse: -1 },
+  { key: 'lymphocytes', label: 'lymphocytes up', worse: 1 },
   { key: 'sleepHours', label: 'sleep down', worse: -1 },
 ];
 
@@ -155,9 +156,13 @@ export function findingsFor(memberId: string, days: MemberDay[], b: Baselines, e
     add({ id: 'immune-wbc', system: 'immune', severity: sev(z(wbc, b.leukocytes) >= T.zRed || wbc > T.leukocytesHigh), reveals: 'blood',
       message: `Leukocytes ${f1(wbc)} ×10⁹/L, above a personal normal of ${f1(b.leukocytes.mean)}.` });
   const lym = recent(days, (d) => d.blood.lymphocytes);
-  if (z(lym, b.lymphocytes) <= -T.zYellow || lym < T.lymphocytesLow)
-    add({ id: 'immune-lymph', system: 'immune', severity: sev(z(lym, b.lymphocytes) <= -T.zRed || lym < T.lymphocytesLow), reveals: 'blood',
-      message: `Lymphocytes ${lym.toFixed(2)} ×10⁹/L, below a personal normal of ${b.lymphocytes.mean.toFixed(2)}.` });
+  const lymZ = z(lym, b.lymphocytes);
+  if (lymZ >= T.zYellow || lym > T.lymphocytesHigh)
+    add({ id: 'immune-lymph', system: 'immune', severity: sev(lymZ >= T.zRed || lym > T.lymphocytesHigh), reveals: 'blood',
+      message: `Lymphocytes ${lym.toFixed(2)} ×10⁹/L, above a personal normal of ${b.lymphocytes.mean.toFixed(2)} (possible infection).` });
+  if (lymZ <= -T.zYellow || lym < T.lymphocytesLow)
+    add({ id: 'immune-lymph-low', system: 'immune', severity: sev(lymZ <= -T.zRed || lym < T.lymphocytesLow), reveals: 'blood',
+      message: `Lymphocytes ${lym.toFixed(2)} ×10⁹/L, below a personal normal of ${b.lymphocytes.mean.toFixed(2)} (weakened immune defenses).` });
   if (bl.eosinophils > T.eosinophilsHigh || bl.basophils > T.basophilsHigh)
     add({ id: 'immune-eos-baso', system: 'immune', severity: 'yellow', reveals: 'blood',
       message: `Eosinophils ${bl.eosinophils.toFixed(2)} / basophils ${bl.basophils.toFixed(2)} ×10⁹/L above reference (possible allergic reaction).` });

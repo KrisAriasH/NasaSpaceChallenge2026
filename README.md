@@ -45,7 +45,7 @@ Rule-based and explainable, following the SATS approach (no machine learning as 
 1. **Personal baseline**: mean and SD of each measure over the first 7 days.
 2. **Threshold rules**: reference limits (NASA radiation and CO2 limits; blood reference ranges pending physician review).
 3. **Trend rules**: 3-day average 2 SD (observation) or 3 SD (alert) away from the personal normal.
-4. **Combined early-illness rule**: resting heart rate, HRV, skin temperature, leukocytes, lymphocytes and sleep each 1 SD
+4. **Combined early-illness rule**: resting heart rate, HRV, skin temperature, leukocytes, lymphocytes up and sleep each 1 SD
    off in the worse direction; 3 or more at once on 2 consecutive days → "Early signs of possible illness".
    In the demo it warns Ana on day 23, before any single measure alerts and 2 days before her fever.
 5. **Critical rules** (urgent): solar particle event, very low SpO2, fever with shortness of breath. Never hidden.

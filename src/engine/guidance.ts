@@ -118,6 +118,11 @@ export const GUIDANCE: Record<string, Guidance> = {
     source: 'TODO: consulting physician',
   },
   'immune-lymph': {
+    title: 'Lymphocytes above personal normal',
+    actions: ['Check for signs of infection (fever, sore throat, congestion)', 'Re-check temperature and symptoms', 'Repeat the blood panel tomorrow'],
+    source: 'Consulting physician',
+  },
+  'immune-lymph-low': {
     title: 'Lymphocytes below personal normal',
     actions: ['Watch for infections and latent virus reactivation symptoms', 'Prioritize sleep and limit close contact'],
     source: 'TODO: consulting physician / NASA immune risk',

@@ -26,7 +26,7 @@ export const FORECAST_METRICS: { key: BaselineKey; label: string; unit: string; 
   { key: 'sleepHours', label: 'Sleep', unit: 'h', worse: 'down' },
   { key: 'meanMs', label: 'Reaction time', unit: 'ms', worse: 'up' },
   { key: 'leukocytes', label: 'Leukocytes', unit: '×10⁹/L', worse: 'up' },
-  { key: 'lymphocytes', label: 'Lymphocytes', unit: '×10⁹/L', worse: 'down' },
+  { key: 'lymphocytes', label: 'Lymphocytes', unit: '×10⁹/L', worse: 'up' },
   { key: 'iron', label: 'Iron', unit: 'µg/dL', worse: 'down' },
   { key: 'vitaminD', label: 'Vitamin D', unit: 'ng/mL', worse: 'down' },
   { key: 'cortisol', label: 'Cortisol', unit: 'µg/dL', worse: 'up' },

@@ -143,6 +143,17 @@ describe('demo story', () => {
     expect(statusOn('ana', 26).immune.status).not.toBe('green');
   });
 
+  it('treats Ana lymphocytes rising during illness as an infection signal', () => {
+    const days = simulateMember('ana');
+    const lymphocyteAverage = days.slice(22, 25).reduce((sum, day) => sum + day.blood.lymphocytes, 0) / 3;
+    const baselines = computeBaselines(days);
+    expect(lymphocyteAverage).toBeGreaterThan(baselines.lymphocytes.mean);
+    expect(statusOn('ana', 25).immune.findings.map((f) => f.id)).toContain('immune-lymph');
+    for (const member of CREW) {
+      expect(statusOn(member.id, 30).immune.findings.map((f) => f.id)).not.toContain('immune-lymph-low');
+    }
+  });
+
   it('flags the blood panel: Diego vitamin D, Ana leukocytes and lymphocytes, Chen cortisol', () => {
     expect(statusOn('diego', 20).blood.findings.map((f) => f.id)).toContain('blood-vitd');
     const anaImmune = statusOn('ana', 25).immune.findings.map((f) => f.id);

@@ -19,6 +19,7 @@ const SYMPTOMS = [
   'chest pain',
   'constipation',
   'tooth weakness or pain',
+  'shortness of breath',
 ];
 
 const SCALES: { key: keyof Omit<CheckIn, 'symptoms'>; label: string; low: string; high: string }[] = [
