@@ -17,7 +17,7 @@ export function Alerts() {
       {findings.length === 0 ? (
         <p className="empty">No alerts today. Everyone is within their normal range.</p>
       ) : (
-        <FindingList findings={findings} showName groups />
+        <FindingList findings={findings} showName groups numbered />
       )}
     </>
   );
